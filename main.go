@@ -8,6 +8,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strconv"
 	"strings"
 )
@@ -16,7 +17,7 @@ const (
 	StopwordsPath          = "resources/stopwords.txt"
 	WordwiseDictionaryPath = "resources/wordwise-dict.csv"
 	TempDir                = "tempData"
-	IntermediateBookName   = "book_dump"
+	TempBookName           = "book_dump"
 )
 
 var hintLevel int = 5
@@ -57,32 +58,61 @@ func main() {
 	ebookConvertCmd = getEbookConvertCmd()
 
 	// convert book to html
+	createTempFolder()
 	convertBookToHtml(inputPath)
 
 	// create wordwise book
-	// createBookWithWordwised()
+	createBookWithWordwised(inputPath)
 
-	// log.Println("[+] Cleaning temp files...")
-	// cleanTempData()
+	log.Println("[+] Cleaning temp files...")
+	cleanTempData()
 
 	log.Println("--> Finished!")
 }
 
 func cleanTempData() {
-	// remove htmlz file
-	os.Remove(fmt.Sprintf("%s.htmlz", IntermediateBookName))
 	// remove temp folder
-	os.RemoveAll(IntermediateBookName)
+	os.RemoveAll(TempDir)
+}
+
+func createTempFolder() {
+	if err := os.Mkdir(TempDir, os.ModePerm); err != nil {
+		log.Fatal(err)
+	}
 }
 
 func convertBookToHtml(inputPath string) {
 	log.Println("[+] Convert Book to HTML")
-	log.Println(ebookConvertCmd)
-	exec.Command(ebookConvertCmd, inputPath, fmt.Sprintf("%s.htmlz", IntermediateBookName)).Run()
-	exec.Command(ebookConvertCmd, fmt.Sprintf("%s.htmlz", IntermediateBookName), IntermediateBookName).Run()
+	tempBookPath := TempDir + "/" + TempBookName
+	runCommand(ebookConvertCmd, inputPath, (tempBookPath + ".htmlz"))
+	runCommand(ebookConvertCmd, (tempBookPath + ".htmlz"), tempBookPath)
 
-	if _, err := os.Stat(fmt.Sprintf("%s/index1.html", IntermediateBookName)); err != nil {
-		log.Fatalln("Please check did you installed Calibre ? Can you run command ebook-convert in shell ? I cannot access command ebook-convert in your system shell, This script need Calibre to process ebook texts")
+	if _, err := os.Stat(tempBookPath + "/index1.html"); err != nil {
+		log.Fatalln("Please check if you have installed Calibre. Can you run the command 'ebook-convert' in your shell? I cannot access the 'ebook-convert' command in your system's shell. This script requires Calibre to process ebook texts.")
+	}
+}
+
+func createBookWithWordwised(inputPath string) {
+	extension := filepath.Ext(inputPath)
+	bookPath := filepath.Dir(inputPath)
+	fileName := strings.TrimSuffix(filepath.Base(inputPath), extension)
+	extension = strings.Trim(extension, ".")
+
+	log.Println("[+] Create New Book with Wordwised")
+	htmlPath := fmt.Sprintf("%s/%s/index1.html", TempDir, TempBookName)
+	outputPath := fmt.Sprintf("%s/%s-wordwise.%s", bookPath, fileName, extension)
+	metaDataPath := fmt.Sprintf("%s/%s/content.opf", TempDir, TempBookName)
+	runCommand(ebookConvertCmd, htmlPath, outputPath, "-m", metaDataPath)
+
+	log.Println("[+] The EPUB book with wordwise generated at", outputPath)
+}
+
+func runCommand(name string, arg ...string) {
+	out, err := exec.Command(name, arg...).Output()
+	if err != nil {
+		log.Println("Run command:", name, strings.Join(arg, " "))
+		log.Print(string(out))
+		log.Println("Error:", err)
 	}
 }
 

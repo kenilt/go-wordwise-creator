@@ -6,7 +6,7 @@ This project is a golang port version of this one: https://github.com/xnohat/wor
 And it based on this project: https://github.com/dungxmta/wordwisecreator
 
 ## Milestones
-- [ ] Port basic feature from php project
+- [ ] Port basic feature from php project - WIP
 - [ ] Support input flags and config output type
 - [ ] Support the meaning of pharse
 - [ ] Support stemmer words
