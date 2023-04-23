@@ -25,26 +25,30 @@ const (
 
 var specialChars = []string{",", "<", ">", ";", "&", "*", "~", "/", "\"", "[", "]", "#", "?", "`", "–", ".", "'", "!", "“", "”", ":", "."}
 var hintLevel int = 5
+var formatType string
 var inputPath string
 var ebookConvertCmd string
 
-func main() {
-	args := os.Args
-	if len(args) < 2 {
-		log.Println("usage: go run . input_file hint_level")
-		log.Println("input_file : path to file need to generate wordwise")
-		log.Println("hint_level : from 1 to 5 default is 5, 1 is less wordwise hint show - only hard word will have definition, 5 is all wordwise hints show")
-		os.Exit(0)
-	}
+type ProcessState int
 
-	inputPath = args[1]
-	if len(args) > 2 {
-		parseNum, err := strconv.Atoi(args[2])
-		if err == nil {
-			hintLevel = parseNum
-		}
-	}
-	log.Printf("[+] Hint level: %d\n", hintLevel)
+const (
+	OpenTag ProcessState = iota
+	Collecting
+)
+
+type DictRow struct {
+	Word     string
+	FullDef  string
+	ShortDef string
+	Example  string
+	HintLv   int
+}
+
+func main() {
+	readInputParams(os.Args)
+
+	log.Println("[+] Hint level:", hintLevel)
+	log.Println("[+] Format type:", formatType)
 
 	log.Println("[+] Load stopwords")
 	stopWords := loadStopWords()
@@ -76,6 +80,31 @@ func main() {
 	log.Println("--> Finished!")
 }
 
+func readInputParams(args []string) {
+	if len(args) < 2 {
+		log.Println("Usage: go run . input_file hint_level format_type")
+		log.Println("input_file: A path to file need to generate wordwise")
+		log.Println("hint_level: From 1 to 5, where 5 shows all wordwise hints, and 1 shows hints only for hard words with definitions. The default is 5")
+		log.Println("format_type: The format type of output book, (ex: epub). The default is use the input format")
+		os.Exit(0)
+	}
+
+	inputPath = args[1]
+	if len(args) > 2 {
+		parseNum, err := strconv.Atoi(args[2])
+		if err == nil {
+			hintLevel = parseNum
+		}
+	}
+	if len(args) > 3 {
+		formatType = args[3]
+	}
+
+	if _, err := os.Stat(inputPath); err != nil {
+		log.Fatalln(fmt.Sprintf("File at %s is not found!", inputPath))
+	}
+}
+
 func convertBookToHtml(inputPath string) {
 	log.Println("[+] Convert Book to HTML")
 
@@ -93,13 +122,6 @@ func convertBookToHtml(inputPath string) {
 		log.Fatalln("Please check if you have installed Calibre. Can you run the command 'ebook-convert' in your shell? I cannot access the 'ebook-convert' command in your system's shell. This script requires Calibre to process ebook texts.")
 	}
 }
-
-type ProcessState int
-
-const (
-	OpenTag ProcessState = iota
-	Collecting
-)
 
 func processHtmlBookData(stopWords *map[string]bool, dict *map[string]DictRow) {
 	htmlBookPath := fmt.Sprintf("%s/%s/index1.html", TempDir, TempBookName)
@@ -199,7 +221,13 @@ func createBookWithWordwised(inputPath string) {
 	extension := filepath.Ext(inputPath)
 	bookPath := filepath.Dir(inputPath)
 	fileName := strings.TrimSuffix(filepath.Base(inputPath), extension)
-	extension = strings.Trim(extension, ".")
+
+	// handle output format type
+	if len(formatType) > 0 {
+		extension = formatType
+	} else {
+		extension = strings.Trim(extension, ".")
+	}
 
 	log.Println("[+] Create New Book with Wordwised")
 
@@ -302,14 +330,6 @@ func loadStopWords() *map[string]bool {
 
 	log.Println("--> Stop words:", count)
 	return &dict
-}
-
-type DictRow struct {
-	Word     string
-	FullDef  string
-	ShortDef string
-	Example  string
-	HintLv   int
 }
 
 // Load Dict from CSV

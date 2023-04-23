@@ -7,7 +7,7 @@ And it based on this project: https://github.com/dungxmta/wordwisecreator
 
 ## Milestones
 - [x] Port basic features from php project
-- [ ] Support input flags and config output type
+- [x] Support config output type
 - [ ] Support the meaning of pharse
 - [ ] Support stemmer words
 - [ ] Support Eng - Viet by input config
@@ -20,12 +20,19 @@ Before using this tool, you need to install these things:
 
 
 ## Usage
-You need to have [calibre](https://calibre-ebook.com/) on your device.
-Then update all the needed dependencies
+Update all the needed dependencies  
 `go mod download`
 
-To create book with wordwise:
-`go run . input_file hint_level`
-- input_file : path to file need to generate wordwise.
-- hint_level : from 1 to 5 default is 5, 1 is less wordwise hint show - only hard word will have definition, 5 is all wordwise hints show.
-- The output book will be exported at the same location with the input book with `-wordwise` suffix.
+To create book with wordwise:  
+`go run . input_path hint_level format_type`
+
+```
+Usage: go run . input_file hint_level format_type
+input_file: A path to file need to generate wordwise
+hint_level: From 1 to 5, where 5 shows all wordwise hints, and 1 shows hints only for hard words with definitions. The default is 5
+format_type: The format type of output book, (ex: epub). The default is use the input format
+
+The output book will be exported at the same location with the input book with `-wordwise` suffix.
+```
+
+Example: `go run . Sample_book_test.epub 3 mobi`
