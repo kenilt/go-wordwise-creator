@@ -11,6 +11,9 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
+
+	"github.com/schollz/progressbar/v3"
 )
 
 const (
@@ -61,6 +64,7 @@ func main() {
 	convertBookToHtml(inputPath)
 
 	// process book
+	log.Println("[+] Process book with wordwise")
 	processHtmlBookData(stopWords, dict)
 
 	// create wordwise book
@@ -70,6 +74,24 @@ func main() {
 	cleanTempData()
 
 	log.Println("--> Finished!")
+}
+
+func convertBookToHtml(inputPath string) {
+	log.Println("[+] Convert Book to HTML")
+
+	done := make(chan bool)
+	go showTimeProgress("    Converting book", done)
+
+	tempBookPath := TempDir + "/" + TempBookName
+	runCommand(ebookConvertCmd, inputPath, (tempBookPath + ".htmlz"))
+	runCommand(ebookConvertCmd, (tempBookPath + ".htmlz"), tempBookPath)
+
+	done <- true
+	time.Sleep(50 * time.Millisecond)
+
+	if _, err := os.Stat(tempBookPath + "/index1.html"); err != nil {
+		log.Fatalln("Please check if you have installed Calibre. Can you run the command 'ebook-convert' in your shell? I cannot access the 'ebook-convert' command in your system's shell. This script requires Calibre to process ebook texts.")
+	}
 }
 
 type ProcessState int
@@ -88,21 +110,28 @@ func processHtmlBookData(stopWords *map[string]bool, dict *map[string]DictRow) {
 	}
 
 	chars := []rune(string(bbytes))
+	charLength := len(chars)
 	var bookBuilder strings.Builder
+	processCount := 0
+	bar := createProgressBar(100, "    Processing book")
 
 	state := Collecting
 	var collectBuilder strings.Builder
 	var tagBuilder strings.Builder
 	isSawBody := false
-	for i := 0; i < len(chars); i++ {
+	for i := 0; i < charLength; i++ {
 		char := chars[i]
 		if char == '<' { // see the open tag mean collecting finish, process what was collected
 			state = OpenTag
 			collected := collectBuilder.String()
 			trimmed := strings.TrimSpace(collected)
 			if isSawBody && len(trimmed) > 0 {
-				processed := processBlock(trimmed, stopWords, dict)
+				processed, count := processBlock(trimmed, stopWords, dict)
 				bookBuilder.WriteString(processed)
+				processCount += count
+
+				// update progress
+				bar.Set(i * 100 / charLength)
 			} else {
 				bookBuilder.WriteString(collected)
 			}
@@ -125,6 +154,9 @@ func processHtmlBookData(stopWords *map[string]bool, dict *map[string]DictRow) {
 			}
 		}
 	}
+	bar.Set(100)
+
+	log.Println(fmt.Sprintf("--> Added wordwise for %d words", processCount))
 
 	fo, err := os.Create(htmlBookPath)
 	if err != nil {
@@ -139,7 +171,8 @@ func processHtmlBookData(stopWords *map[string]bool, dict *map[string]DictRow) {
 	}
 }
 
-func processBlock(content string, stopWords *map[string]bool, dict *map[string]DictRow) string {
+func processBlock(content string, stopWords *map[string]bool, dict *map[string]DictRow) (string, int) {
+	count := 0
 	words := strings.Fields(content)
 	for i := 0; i < len(words); i++ {
 		word := words[i]
@@ -157,8 +190,31 @@ func processBlock(content string, stopWords *map[string]bool, dict *map[string]D
 		}
 
 		words[i] = fmt.Sprintf("<ruby>%v<rt>%v</rt></ruby>", word, ws.ShortDef)
+		count++
 	}
-	return strings.Join(words, " ")
+	return strings.Join(words, " "), count
+}
+
+func createBookWithWordwised(inputPath string) {
+	extension := filepath.Ext(inputPath)
+	bookPath := filepath.Dir(inputPath)
+	fileName := strings.TrimSuffix(filepath.Base(inputPath), extension)
+	extension = strings.Trim(extension, ".")
+
+	log.Println("[+] Create New Book with Wordwised")
+
+	done := make(chan bool)
+	go showTimeProgress("      Creating book", done)
+
+	htmlPath := fmt.Sprintf("%s/%s/index1.html", TempDir, TempBookName)
+	outputPath := fmt.Sprintf("%s/%s-wordwise.%s", bookPath, fileName, extension)
+	metaDataPath := fmt.Sprintf("%s/%s/content.opf", TempDir, TempBookName)
+	runCommand(ebookConvertCmd, htmlPath, outputPath, "-m", metaDataPath)
+
+	done <- true
+	time.Sleep(50 * time.Millisecond)
+
+	log.Println("[+] The EPUB book with wordwise was generated at", outputPath)
 }
 
 // Remove special characters from word
@@ -178,32 +234,6 @@ func createTempFolder() {
 	if err := os.Mkdir(TempDir, os.ModePerm); err != nil {
 		log.Fatal(err)
 	}
-}
-
-func convertBookToHtml(inputPath string) {
-	log.Println("[+] Convert Book to HTML...")
-	tempBookPath := TempDir + "/" + TempBookName
-	runCommand(ebookConvertCmd, inputPath, (tempBookPath + ".htmlz"))
-	runCommand(ebookConvertCmd, (tempBookPath + ".htmlz"), tempBookPath)
-
-	if _, err := os.Stat(tempBookPath + "/index1.html"); err != nil {
-		log.Fatalln("Please check if you have installed Calibre. Can you run the command 'ebook-convert' in your shell? I cannot access the 'ebook-convert' command in your system's shell. This script requires Calibre to process ebook texts.")
-	}
-}
-
-func createBookWithWordwised(inputPath string) {
-	extension := filepath.Ext(inputPath)
-	bookPath := filepath.Dir(inputPath)
-	fileName := strings.TrimSuffix(filepath.Base(inputPath), extension)
-	extension = strings.Trim(extension, ".")
-
-	log.Println("[+] Create New Book with Wordwised...")
-	htmlPath := fmt.Sprintf("%s/%s/index1.html", TempDir, TempBookName)
-	outputPath := fmt.Sprintf("%s/%s-wordwise.%s", bookPath, fileName, extension)
-	metaDataPath := fmt.Sprintf("%s/%s/content.opf", TempDir, TempBookName)
-	runCommand(ebookConvertCmd, htmlPath, outputPath, "-m", metaDataPath)
-
-	log.Println("[+] The EPUB book with wordwise was generated at", outputPath)
 }
 
 func runCommand(name string, arg ...string) {
@@ -344,4 +374,50 @@ func loadWordwiseDict() *map[string]DictRow {
 
 	log.Println("--> Csv words:", count)
 	return &dict
+}
+
+func createProgressBar(max int, description string) *progressbar.ProgressBar {
+	return progressbar.NewOptions(max,
+		progressbar.OptionSetDescription(description),
+		progressbar.OptionShowCount(),
+		progressbar.OptionOnCompletion(func() {
+			fmt.Fprint(os.Stderr, "\n")
+		}),
+		progressbar.OptionThrottle(65*time.Millisecond),
+		progressbar.OptionSetWidth(15),
+		progressbar.OptionFullWidth(),
+		progressbar.OptionSetRenderBlankState(true),
+		progressbar.OptionSetTheme(progressbar.Theme{
+			Saucer:        "=",
+			SaucerHead:    ">",
+			SaucerPadding: " ",
+			BarStart:      "[",
+			BarEnd:        "]",
+		}))
+}
+
+func showTimeProgress(description string, done chan bool) {
+	bar := createProgressBar(100, description)
+	count := 0
+	fCount := 0.0
+	decelerateValue := 1.0
+	for {
+		select {
+		case <-done:
+			bar.Set(100)
+			return
+
+		default:
+			if count <= 90 {
+				count++
+				fCount = float64(count)
+			} else {
+				decelerateValue /= 1.12
+				fCount = fCount + decelerateValue
+				count = int(fCount)
+			}
+			bar.Set(count)
+			time.Sleep(50 * time.Millisecond)
+		}
+	}
 }

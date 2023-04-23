@@ -6,7 +6,7 @@ This project is a golang port version of this one: https://github.com/xnohat/wor
 And it based on this project: https://github.com/dungxmta/wordwisecreator
 
 ## Milestones
-- [ ] Port basic features from php project - WIP
+- [x] Port basic features from php project
 - [ ] Support input flags and config output type
 - [ ] Support the meaning of pharse
 - [ ] Support stemmer words
@@ -21,8 +21,10 @@ Before using this tool, you need to install these things:
 
 ## Usage
 You need to have [calibre](https://calibre-ebook.com/) on your device.
+Then update all the needed dependencies
+`go mod download`
 
-Open your terminal then type:
+To create book with wordwise:
 `go run . input_file hint_level`
 - input_file : path to file need to generate wordwise.
 - hint_level : from 1 to 5 default is 5, 1 is less wordwise hint show - only hard word will have definition, 5 is all wordwise hints show.
