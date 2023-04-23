@@ -2,16 +2,19 @@
 
 Generate wordwise for ebook formats (EPUB, MOBI, PRC, AZW3, PDF...)
 
-This project is a golang port version of this one: https://github.com/xnohat/wordwisecreator
-And it based on this project: https://github.com/dungxmta/wordwisecreator
-And it also based on the data from this project https://github.com/michmech/lemmatization-lists
+This project is a golang port version of this one: https://github.com/xnohat/wordwisecreator  
+And it based on this project: https://github.com/dungxmta/wordwisecreator  
+And it also based on the data from this project https://github.com/michmech/lemmatization-lists  
+And the phonemes data from this project https://github.com/open-dict-data/ipa-dict  
+And use Google stranslate to prepare resource for vietnamese meaning
 
 ## Milestones
 - [x] Port basic features from php project
 - [x] Support config output type
 - [x] Support stemming words
-- [ ] Support the meaning of pharse
+- [ ] Support pronunciation symbols
 - [ ] Support Eng - Viet by input config
+- [ ] Support the meaning of pharse
 - [ ] Improve the performance by using multiple threads
 
 ## Installation
@@ -37,3 +40,6 @@ The output book will be exported at the same location with the input book with `
 ```
 
 Example: `go run . Sample_book_test.epub 3 mobi`
+
+## To prepare another optimized dictionary
+Use Excel or Google Sheet to edit the `wordwise-dict.csv` file, use Google Translate to translate words to vietnamese, use `lemmatization-en.csv` file as the lemmatizer dictionary, and use the `phoneme-dict.csv` then use VLOOKUP function to get the phoneme of each word in the original file.
