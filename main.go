@@ -19,6 +19,7 @@ import (
 const (
 	StopwordsPath          = "resources/stopwords.txt"
 	WordwiseDictionaryPath = "resources/wordwise-dict.csv"
+	LemmaDictionaryPath    = "resources/lemmatization-en.csv"
 	TempDir                = "tempData"
 	TempBookName           = "book_dump"
 )
@@ -54,7 +55,10 @@ func main() {
 	stopWords := loadStopWords()
 
 	log.Println("[+] Load wordwise dict")
-	dict := loadWordwiseDict()
+	wordwiseDict := loadWordwiseDict()
+
+	log.Println("[+] Load lemma dict")
+	lemmaDict := loadLemmatizerDict()
 
 	// clean old temp
 	log.Println("[+] Cleaning old temp files")
@@ -69,7 +73,7 @@ func main() {
 
 	// process book
 	log.Println("[+] Process book with wordwise")
-	processHtmlBookData(stopWords, dict)
+	processHtmlBookData(stopWords, wordwiseDict, lemmaDict)
 
 	// create wordwise book
 	createBookWithWordwised(inputPath)
@@ -123,7 +127,7 @@ func convertBookToHtml(inputPath string) {
 	}
 }
 
-func processHtmlBookData(stopWords *map[string]bool, dict *map[string]DictRow) {
+func processHtmlBookData(stopWords *map[string]bool, wordwiseDict *map[string]DictRow, lemmaDict *map[string]string) {
 	htmlBookPath := fmt.Sprintf("%s/%s/index1.html", TempDir, TempBookName)
 
 	bbytes, err := os.ReadFile(htmlBookPath)
@@ -134,7 +138,8 @@ func processHtmlBookData(stopWords *map[string]bool, dict *map[string]DictRow) {
 	chars := []rune(string(bbytes))
 	charLength := len(chars)
 	var bookBuilder strings.Builder
-	processCount := 0
+	wordwiseCount := 0
+	totalCount := 0
 	bar := createProgressBar(100, "    Processing book")
 
 	state := Collecting
@@ -148,9 +153,10 @@ func processHtmlBookData(stopWords *map[string]bool, dict *map[string]DictRow) {
 			collected := collectBuilder.String()
 			trimmed := strings.TrimSpace(collected)
 			if isSawBody && len(trimmed) > 0 {
-				processed, count := processBlock(trimmed, stopWords, dict)
+				processed, count, total := processBlock(trimmed, stopWords, wordwiseDict, lemmaDict)
 				bookBuilder.WriteString(processed)
-				processCount += count
+				wordwiseCount += count
+				totalCount += total
 
 				// update progress
 				bar.Set(i * 100 / charLength)
@@ -178,7 +184,7 @@ func processHtmlBookData(stopWords *map[string]bool, dict *map[string]DictRow) {
 	}
 	bar.Set(100)
 
-	log.Println(fmt.Sprintf("--> Added wordwise for %d words", processCount))
+	log.Println(fmt.Sprintf("--> Processed %d words, Added wordwise for %d words", totalCount, wordwiseCount))
 
 	fo, err := os.Create(htmlBookPath)
 	if err != nil {
@@ -193,7 +199,7 @@ func processHtmlBookData(stopWords *map[string]bool, dict *map[string]DictRow) {
 	}
 }
 
-func processBlock(content string, stopWords *map[string]bool, dict *map[string]DictRow) (string, int) {
+func processBlock(content string, stopWords *map[string]bool, wordwiseDict *map[string]DictRow, lemmaDict *map[string]string) (string, int, int) {
 	count := 0
 	words := strings.Fields(content)
 	for i := 0; i < len(words); i++ {
@@ -202,9 +208,19 @@ func processBlock(content string, stopWords *map[string]bool, dict *map[string]D
 			continue
 		}
 
-		ws, ok := (*dict)[word]
+		// first, find the word in dict
+		ws, ok := (*wordwiseDict)[word]
 		if !ok {
-			continue
+			// not found, find it normal form
+			lm, ok := (*lemmaDict)[word]
+			if !ok {
+				continue
+			}
+			// then, find the normal form in dict
+			ws, ok = (*wordwiseDict)[lm]
+			if !ok {
+				continue
+			}
 		}
 
 		if ws.HintLv > hintLevel {
@@ -214,7 +230,7 @@ func processBlock(content string, stopWords *map[string]bool, dict *map[string]D
 		words[i] = fmt.Sprintf("<ruby>%v<rt>%v</rt></ruby>", word, ws.ShortDef)
 		count++
 	}
-	return strings.Join(words, " "), count
+	return strings.Join(words, " "), count, len(words)
 }
 
 func createBookWithWordwised(inputPath string) {
@@ -337,7 +353,7 @@ func loadWordwiseDict() *map[string]DictRow {
 
 	file, err := os.Open(WordwiseDictionaryPath)
 	if err != nil {
-		log.Fatalln("Error when open ", StopwordsPath, "->", err)
+		log.Fatalln("Error when open ", WordwiseDictionaryPath, "->", err)
 	}
 	defer func() {
 		err := file.Close()
@@ -393,6 +409,47 @@ func loadWordwiseDict() *map[string]DictRow {
 	}
 
 	log.Println("--> Csv words:", count)
+	return &dict
+}
+
+// Load Dict from CSV
+func loadLemmatizerDict() *map[string]string {
+
+	file, err := os.Open(LemmaDictionaryPath)
+	if err != nil {
+		log.Fatalln("Error when open ", LemmaDictionaryPath, "->", err)
+	}
+	defer func() {
+		err := file.Close()
+		if err != nil {
+			log.Println(err)
+		}
+	}()
+
+	reader := csv.NewReader(file)
+
+	dict := make(map[string]string)
+
+	count := 0
+	for {
+		record, err := reader.Read()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			log.Fatalln("Error when scan word ", count, "->", err)
+		}
+
+		if len(record) < 2 {
+			log.Println("Invalid word: ", record)
+			continue
+		}
+
+		dict[record[1]] = record[0]
+		count++
+	}
+
+	log.Println("--> Lemma pairs:", count)
 	return &dict
 }
 

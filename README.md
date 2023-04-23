@@ -4,12 +4,13 @@ Generate wordwise for ebook formats (EPUB, MOBI, PRC, AZW3, PDF...)
 
 This project is a golang port version of this one: https://github.com/xnohat/wordwisecreator
 And it based on this project: https://github.com/dungxmta/wordwisecreator
+And it also based on the data from this project https://github.com/michmech/lemmatization-lists
 
 ## Milestones
 - [x] Port basic features from php project
 - [x] Support config output type
+- [x] Support stemming words
 - [ ] Support the meaning of pharse
-- [ ] Support stemmer words
 - [ ] Support Eng - Viet by input config
 - [ ] Improve the performance by using multiple threads
 
