@@ -67,3 +67,12 @@ OR `go run . Sample_book_test.epub 3 azw3 en`
 
 ### To prepare another optimized dictionary
 Use Excel or Google Sheet to edit the `wordwise-dict.csv` file, use Google Translate to translate words to vietnamese, use `lemmatization-en.csv` file as the lemmatizer dictionary, and use the `phoneme-dict.csv` then use VLOOKUP function to get the phoneme of each word in the original file.
+
+## Release step
+
+- For windows  
+`GOOS=windows GOARCH=amd64 go build`
+- For MacOS  
+`GOOS=darwin GOARCH=amd64 go build`  
+
+Then zip the bin file with resources folder

@@ -41,14 +41,12 @@ func main() {
 	// process book
 	log.Println("[+] Process book with wordwise")
 	processHtmlBookData(stopWords, wordwiseDict, lemmaDict)
+	modifyCalibreTitle()
 
 	// create wordwise book
 	createBookWithWordwised(inputPath)
 
-	// log.Println("[+] Cleaning temp files")
 	cleanTempData()
-
-	log.Println("--> Finished!")
 }
 
 func readInputParams(args []string) {

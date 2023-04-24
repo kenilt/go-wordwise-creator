@@ -43,7 +43,7 @@ func processHtmlBookData(stopWords *map[string]bool, wordwiseDict *map[string]Di
 			collected := collectBuilder.String()
 			trimmed := strings.TrimSpace(collected)
 			if isSawBody && len(trimmed) > 0 {
-				processed, count, total := processBlock(trimmed, stopWords, wordwiseDict, lemmaDict)
+				processed, count, total := processBlock(collected, stopWords, wordwiseDict, lemmaDict)
 				bookBuilder.WriteString(processed)
 				wordwiseCount += count
 				totalCount += total
@@ -91,7 +91,7 @@ func processHtmlBookData(stopWords *map[string]bool, wordwiseDict *map[string]Di
 
 func processBlock(content string, stopWords *map[string]bool, wordwiseDict *map[string]DictRow, lemmaDict *map[string]string) (string, int, int) {
 	count := 0
-	words := strings.Fields(content)
+	words := strings.Split(content, " ")
 	for i := 0; i < len(words); i++ {
 		word := cleanWord(words[i])
 		if _, ok := (*stopWords)[word]; ok {
@@ -137,6 +137,58 @@ func processBlock(content string, stopWords *map[string]bool, wordwiseDict *map[
 // Remove special characters from word
 func cleanWord(word string) string {
 	return strings.ToLower(strings.Trim(word, ".?!,:;()[]{}<>“”‘’\"'`…*•&#~"))
+}
+
+func modifyCalibreTitle() {
+	metaPath := fmt.Sprintf("%s/%s/content.opf", TempDir, TempBookName)
+
+	bbytes, err := os.ReadFile(metaPath)
+	if err != nil {
+		return
+	}
+
+	chars := []rune(string(bbytes))
+	charLength := len(chars)
+	var metaBuilder strings.Builder
+
+	state := Collecting
+	isTitle := false
+	var collectBuilder strings.Builder
+	var tagBuilder strings.Builder
+	for i := 0; i < charLength; i++ {
+		char := chars[i]
+		if char == '<' { // see the open tag mean collecting finish, process what was collected
+			state = OpenTag
+			collected := collectBuilder.String()
+			collectBuilder.Reset()
+			if isTitle {
+				collected += " - Wordwise"
+			}
+			metaBuilder.WriteString(collected)
+			metaBuilder.WriteRune(char)
+		} else if char == '>' { // see the close tag mean the tag content finish
+			state = Collecting
+			collectedTag := tagBuilder.String()
+			isTitle = (collectedTag == "dc:title")
+			tagBuilder.Reset()
+			metaBuilder.WriteString(collectedTag)
+			metaBuilder.WriteRune(char)
+		} else {
+			if state == Collecting {
+				collectBuilder.WriteRune(char)
+			} else if state == OpenTag {
+				tagBuilder.WriteRune(char)
+			}
+		}
+	}
+
+	fo, err := os.Create(metaPath)
+	if err != nil {
+		return
+	}
+	defer fo.Close()
+
+	fo.WriteString(metaBuilder.String())
 }
 
 func createProgressBar(max int, description string) *progressbar.ProgressBar {
