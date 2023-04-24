@@ -18,7 +18,7 @@ import (
 
 const (
 	StopwordsPath          = "resources/stopwords.txt"
-	WordwiseDictionaryPath = "resources/wordwise-dict.csv"
+	WordwiseDictionaryPath = "resources/wordwise-dict-optimized.csv"
 	LemmaDictionaryPath    = "resources/lemmatization-en.csv"
 	TempDir                = "tempData"
 	TempBookName           = "book_dump"
@@ -28,6 +28,7 @@ var specialChars = []string{",", "<", ">", ";", "&", "*", "~", "/", "\"", "[", "
 var hintLevel int = 5
 var formatType string
 var inputPath string
+var isVietnamese bool = false
 var ebookConvertCmd string
 
 type ProcessState int
@@ -38,11 +39,11 @@ const (
 )
 
 type DictRow struct {
-	Word     string
-	FullDef  string
-	ShortDef string
-	Example  string
-	HintLv   int
+	Word    string
+	Phoneme string
+	En      string
+	Vi      string
+	HintLvl int
 }
 
 func main() {
@@ -89,7 +90,8 @@ func readInputParams(args []string) {
 		log.Println("Usage: go run . input_file hint_level format_type")
 		log.Println("input_file: A path to file need to generate wordwise")
 		log.Println("hint_level: From 1 to 5, where 5 shows all wordwise hints, and 1 shows hints only for hard words with definitions. The default is 5")
-		log.Println("format_type: The format type of output book, (ex: epub). The default is use the input format")
+		log.Println("format_type: The format type of output book, (ex: `epub`). The default is use the input format")
+		log.Println("language: The language output for wordwise meaning is only supported in `en` and `vi`.")
 		os.Exit(0)
 	}
 
@@ -102,6 +104,12 @@ func readInputParams(args []string) {
 	}
 	if len(args) > 3 {
 		formatType = args[3]
+	}
+	if len(args) > 4 {
+		wLang := args[4]
+		if wLang == "vi" {
+			isVietnamese = true
+		}
 	}
 
 	if _, err := os.Stat(inputPath); err != nil {
@@ -223,11 +231,22 @@ func processBlock(content string, stopWords *map[string]bool, wordwiseDict *map[
 			}
 		}
 
-		if ws.HintLv > hintLevel {
+		if ws.HintLvl > hintLevel {
 			continue
 		}
 
-		words[i] = fmt.Sprintf("<ruby>%v<rt>%v</rt></ruby>", word, ws.ShortDef)
+		var meaning string
+		if isVietnamese {
+			if len(ws.Phoneme) > 0 {
+				meaning = ws.Phoneme + " " + ws.Vi
+			} else {
+				meaning = ws.Vi
+			}
+		} else {
+			meaning = ws.En
+		}
+
+		words[i] = fmt.Sprintf("<ruby>%v<rt>%v</rt></ruby>", word, meaning)
 		count++
 	}
 	return strings.Join(words, " "), count, len(words)
@@ -385,23 +404,23 @@ func loadWordwiseDict() *map[string]DictRow {
 			log.Fatalln("Error when scan word ", count, "->", err)
 		}
 
-		if len(record) < 6 {
+		if len(record) < 5 {
 			log.Println("Invalid word: ", record)
 			continue
 		}
 
-		hintLv, err := strconv.Atoi(record[5])
+		hintLv, err := strconv.Atoi(record[4])
 		if err != nil {
 			log.Println("Can't get hint_level: ", record, "->", err)
 			continue
 		}
 
 		row = DictRow{
-			Word:     record[1],
-			FullDef:  record[2],
-			ShortDef: record[3],
-			Example:  record[4],
-			HintLv:   hintLv,
+			Word:    record[0],
+			Phoneme: record[1],
+			En:      record[2],
+			Vi:      record[3],
+			HintLvl: hintLv,
 		}
 
 		dict[row.Word] = row
@@ -430,9 +449,10 @@ func loadLemmatizerDict() *map[string]string {
 
 	dict := make(map[string]string)
 
+	var record []string
 	count := 0
 	for {
-		record, err := reader.Read()
+		record, err = reader.Read()
 		if err == io.EOF {
 			break
 		}
