@@ -87,11 +87,15 @@ func main() {
 
 func readInputParams(args []string) {
 	if len(args) < 2 {
-		log.Println("Usage: go run . input_file hint_level format_type")
-		log.Println("input_file: A path to file need to generate wordwise")
-		log.Println("hint_level: From 1 to 5, where 5 shows all wordwise hints, and 1 shows hints only for hard words with definitions. The default is 5")
-		log.Println("format_type: The format type of output book, (ex: `epub`). The default is use the input format")
-		log.Println("language: The language output for wordwise meaning is only supported in `en` and `vi`.")
+		log.Println(`
+Usage: go run . input_file hint_level format_type
+- input_file: A path to file need to generate wordwise
+- hint_level: From 1 to 5, where 5 shows all wordwise hints, and 1 shows hints only for hard words with definitions. The default is 5
+- format_type: The format type of output book, (ex: "epub"). The default is use the input format. Note: the "mobi" format is not compatiable with this tool.
+- language: The language output for wordwise meaning is only supported in "en" and "vi"
+
+The output book will be exported at the same location with the input book with "-wordwise" suffix.
+		`)
 		os.Exit(0)
 	}
 

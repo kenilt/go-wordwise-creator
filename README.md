@@ -8,12 +8,14 @@ And it also based on the data from this project https://github.com/michmech/lemm
 And the phonemes data from this project https://github.com/open-dict-data/ipa-dict  
 And use Google stranslate to prepare resource for vietnamese meaning
 
+**WARNING: DO NOT, UNDER ANY CIRCUMSTANCES, DELETE THE FILES FOR THE SOURCE FORMAT. ALWAYS KEEP THE ORIGINAL FORMAT FOR YOUR BOOKS**
+
 ## Milestones
 - [x] Port basic features from php project
 - [x] Support config output type
 - [x] Support stemming words
-- [ ] Support pronunciation symbols
-- [ ] Support Eng - Viet by input config
+- [x] Support pronunciation symbols
+- [x] Support Eng - Viet by input config
 - [ ] Support the meaning of pharse
 - [ ] Improve the performance by using multiple threads
 
@@ -32,14 +34,15 @@ To create book with wordwise:
 
 ```
 Usage: go run . input_file hint_level format_type
-input_file: A path to file need to generate wordwise
-hint_level: From 1 to 5, where 5 shows all wordwise hints, and 1 shows hints only for hard words with definitions. The default is 5
-format_type: The format type of output book, (ex: epub). The default is use the input format
+- input_file: A path to file need to generate wordwise
+- hint_level: From 1 to 5, where 5 shows all wordwise hints, and 1 shows hints only for hard words with definitions. The default is 5
+- format_type: The format type of output book, (ex: "epub"). The default is use the input format. Note: the "mobi" format is not compatiable with this tool.
+- language: The language output for wordwise meaning is only supported in "en" and "vi"
 
-The output book will be exported at the same location with the input book with `-wordwise` suffix.
+The output book will be exported at the same location with the input book with "-wordwise" suffix.
 ```
 
-Example: `go run . Sample_book_test.epub 3 mobi`
+Example: `go run . Sample_book_test.epub 3 azw3 en`
 
 ## To prepare another optimized dictionary
 Use Excel or Google Sheet to edit the `wordwise-dict.csv` file, use Google Translate to translate words to vietnamese, use `lemmatization-en.csv` file as the lemmatizer dictionary, and use the `phoneme-dict.csv` then use VLOOKUP function to get the phoneme of each word in the original file.

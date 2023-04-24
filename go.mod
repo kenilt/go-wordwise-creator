@@ -1,4 +1,4 @@
-module kenilt/go-wordwise-creator
+module github.com/kenilt/go-wordwise-creator
 
 go 1.19
 
