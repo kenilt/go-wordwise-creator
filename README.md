@@ -16,6 +16,7 @@ And use Google stranslate to prepare resource for vietnamese meaning
 - [x] Support stemming words
 - [x] Support pronunciation symbols
 - [x] Support Eng - Viet by input config
+- [ ] Run app by double click on binary file
 - [ ] Support the meaning of pharse
 - [ ] Improve the performance by using multiple threads
 
@@ -29,6 +30,11 @@ And use Google stranslate to prepare resource for vietnamese meaning
     + On Windows: `go-wordwise-creator.exe input_path hint_level format_type language`  
     + On MacOS: `./go-wordwise-creator input_path hint_level format_type language`
 
+### Screenshots
+![Apr-24-2023 17-26-39](https://user-images.githubusercontent.com/3811063/233970925-f4a4c8a0-4065-4ccb-a2e8-404bad01462c.gif)
+
+Output example  
+<img width="672" alt="output-example" src="https://user-images.githubusercontent.com/3811063/233971197-1afe2086-43d0-4d53-a325-8b9817250cd1.png">
 
 ## To run from source
 
