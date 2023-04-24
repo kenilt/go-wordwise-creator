@@ -19,18 +19,32 @@ And use Google stranslate to prepare resource for vietnamese meaning
 - [ ] Support the meaning of pharse
 - [ ] Improve the performance by using multiple threads
 
-## Installation
-Before using this tool, you need to install these things:
-- [Calibre](https://calibre-ebook.com/) 
-- [Golang](https://go.dev/doc/install) with correct config (can run `go verion` in your terminal)
-
 
 ## Usage
+- You need to install [Calibre](https://calibre-ebook.com/)  
+    + On MacOS, install Calibre at `/Applications`, if not please correct config in your path  
+- Download the latest version from [latest release](https://github.com/kenilt/go-wordwise-creator/releases/latest)  
+- Unzip the downloaded file  
+- Run the command  
+    + On Windows: `go-wordwise-creator.exe input_path hint_level format_type language`  
+    + On MacOS: `./go-wordwise-creator input_path hint_level format_type language`
+
+
+## To run from source
+
+### Installation
+Before run this tool, you need to install these things:
+- [Calibre](https://calibre-ebook.com/) 
+    + On MacOS, install Calibre at `/Applications`, if not please correct config in your path  
+- [Golang](https://go.dev/doc/install) with correct config (can run `go verion` in your terminal)
+
+### Run from source
+
 Update all the needed dependencies  
 `go mod download`
 
 To create book with wordwise:  
-`go run . input_path hint_level format_type`
+`go run . input_path hint_level format_type language`
 
 ```
 Usage: go run . input_file hint_level format_type
@@ -42,7 +56,8 @@ Usage: go run . input_file hint_level format_type
 The output book will be exported at the same location with the input book with "-wordwise" suffix.
 ```
 
-Example: `go run . Sample_book_test.epub 3 azw3 en`
+Example: `go run . Sample_book_test.epub`  
+OR `go run . Sample_book_test.epub 3 azw3 en`  
 
-## To prepare another optimized dictionary
+### To prepare another optimized dictionary
 Use Excel or Google Sheet to edit the `wordwise-dict.csv` file, use Google Translate to translate words to vietnamese, use `lemmatization-en.csv` file as the lemmatizer dictionary, and use the `phoneme-dict.csv` then use VLOOKUP function to get the phoneme of each word in the original file.

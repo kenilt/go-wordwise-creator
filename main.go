@@ -347,7 +347,6 @@ func loadStopWords() *map[string]bool {
 
 	scanner := bufio.NewScanner(file)
 	scanner.Split(bufio.ScanLines)
-	// scanner.Split(bufio.ScanWords)
 
 	count := 0
 	for scanner.Scan() {
@@ -359,7 +358,6 @@ func loadStopWords() *map[string]bool {
 		if word != "" {
 			dict[word] = true
 			count++
-			// log.Println(word)
 		}
 	}
 
