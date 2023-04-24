@@ -24,7 +24,6 @@ const (
 	TempBookName           = "book_dump"
 )
 
-var specialChars = []string{",", "<", ">", ";", "&", "*", "~", "/", "\"", "[", "]", "#", "?", "`", "–", ".", "'", "!", "“", "”", ":", "."}
 var hintLevel int = 5
 var formatType string
 var inputPath string
@@ -215,7 +214,7 @@ func processBlock(content string, stopWords *map[string]bool, wordwiseDict *map[
 	count := 0
 	words := strings.Fields(content)
 	for i := 0; i < len(words); i++ {
-		word := words[i]
+		word := cleanWord(words[i])
 		if _, ok := (*stopWords)[word]; ok {
 			continue
 		}
@@ -250,7 +249,7 @@ func processBlock(content string, stopWords *map[string]bool, wordwiseDict *map[
 			meaning = ws.En
 		}
 
-		words[i] = fmt.Sprintf("<ruby>%v<rt>%v</rt></ruby>", word, meaning)
+		words[i] = fmt.Sprintf("<ruby>%v<rt>%v</rt></ruby>", words[i], meaning)
 		count++
 	}
 	return strings.Join(words, " "), count, len(words)
@@ -286,10 +285,7 @@ func createBookWithWordwised(inputPath string) {
 
 // Remove special characters from word
 func cleanWord(word string) string {
-	replacer := strings.NewReplacer(specialChars...)
-	cleanWord := strings.ToLower(replacer.Replace(word))
-
-	return cleanWord
+	return strings.ToLower(strings.Trim(word, ".?!,:;()[]{}<>“”‘’\"'`…*•&#~"))
 }
 
 func cleanTempData() {
