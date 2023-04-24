@@ -17,7 +17,7 @@ const (
 	Collecting
 )
 
-func processHtmlBookData(stopWords *map[string]bool, wordwiseDict *map[string]DictRow, lemmaDict *map[string]string) {
+func processHtmlBookData(wordwiseDict *map[string]DictRow, lemmaDict *map[string]string) {
 	htmlBookPath := fmt.Sprintf("%s/%s/index1.html", TempDir, TempBookName)
 
 	bbytes, err := os.ReadFile(htmlBookPath)
@@ -43,7 +43,7 @@ func processHtmlBookData(stopWords *map[string]bool, wordwiseDict *map[string]Di
 			collected := collectBuilder.String()
 			trimmed := strings.TrimSpace(collected)
 			if isSawBody && len(trimmed) > 0 {
-				processed, count, total := processBlock(collected, stopWords, wordwiseDict, lemmaDict)
+				processed, count, total := processBlock(collected, wordwiseDict, lemmaDict)
 				bookBuilder.WriteString(processed)
 				wordwiseCount += count
 				totalCount += total
@@ -89,14 +89,11 @@ func processHtmlBookData(stopWords *map[string]bool, wordwiseDict *map[string]Di
 	}
 }
 
-func processBlock(content string, stopWords *map[string]bool, wordwiseDict *map[string]DictRow, lemmaDict *map[string]string) (string, int, int) {
+func processBlock(content string, wordwiseDict *map[string]DictRow, lemmaDict *map[string]string) (string, int, int) {
 	count := 0
 	words := strings.Split(content, " ")
 	for i := 0; i < len(words); i++ {
 		word := cleanWord(words[i])
-		if _, ok := (*stopWords)[word]; ok {
-			continue
-		}
 
 		// first, find the word in dict
 		ws, ok := (*wordwiseDict)[word]

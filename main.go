@@ -18,9 +18,6 @@ func main() {
 	log.Println("[+] Hint level:", hintLevel)
 	log.Println("[+] Format type:", formatType)
 
-	log.Println("[+] Load stopwords")
-	stopWords := loadStopWords()
-
 	log.Println("[+] Load wordwise dict")
 	wordwiseDict := loadWordwiseDict()
 
@@ -40,7 +37,7 @@ func main() {
 
 	// process book
 	log.Println("[+] Process book with wordwise")
-	processHtmlBookData(stopWords, wordwiseDict, lemmaDict)
+	processHtmlBookData(wordwiseDict, lemmaDict)
 	modifyCalibreTitle()
 
 	// create wordwise book

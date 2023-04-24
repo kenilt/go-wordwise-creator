@@ -12,11 +12,9 @@ And use Google stranslate to prepare resource for vietnamese meaning
 
 ## Milestones
 - [x] Port basic features from php project
-- [x] Support config output type
 - [x] Support stemming words
 - [x] Support pronunciation symbols
-- [x] Support Eng - Viet by input config
-- [ ] Run app by double click on binary file
+- [x] Support Eng - Viet
 - [ ] Support the meaning of pharse
 - [ ] Improve the performance by using multiple threads
 

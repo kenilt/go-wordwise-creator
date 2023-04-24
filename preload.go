@@ -1,17 +1,14 @@
 package main
 
 import (
-	"bufio"
 	"encoding/csv"
 	"io"
 	"log"
 	"os"
 	"strconv"
-	"strings"
 )
 
 const (
-	StopwordsPath          = "resources/stopwords.txt"
 	WordwiseDictionaryPath = "resources/wordwise-dict-optimized.csv"
 	LemmaDictionaryPath    = "resources/lemmatization-en.csv"
 )
@@ -22,45 +19,6 @@ type DictRow struct {
 	En      string
 	Vi      string
 	HintLvl int
-}
-
-// Load Stop Words from txt
-func loadStopWords() *map[string]bool {
-	dict := make(map[string]bool)
-
-	file, err := os.Open(StopwordsPath)
-	if err != nil {
-		log.Fatalln("Error when open ", StopwordsPath, "->", err)
-	}
-	defer func() {
-		err := file.Close()
-		if err != nil {
-			log.Println(err)
-		}
-	}()
-
-	scanner := bufio.NewScanner(file)
-	scanner.Split(bufio.ScanLines)
-
-	count := 0
-	for scanner.Scan() {
-		word := scanner.Text()
-		if strings.HasPrefix(word, "#") {
-			continue
-		}
-
-		if word != "" {
-			dict[word] = true
-			count++
-		}
-	}
-
-	if scanner.Err() != nil {
-		log.Fatalln("Error when scan word ", "->", err)
-	}
-
-	log.Println("--> Stop words:", count)
-	return &dict
 }
 
 // Load Dict from CSV
