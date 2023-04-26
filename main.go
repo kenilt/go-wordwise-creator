@@ -8,9 +8,6 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
-
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/kenilt/go-wordwise-creator/filepicker"
 )
 
 var inputFormats = []string{"azw", "azw3", "azw4", "cbz", "cbr", "cb7", "cbc", "chm", "djvu", "docx", "epub", "fb2", "fbz", "html", "htmlz", "lit", "lrf", "mobi", "odt", "pdf", "prc", "pdb", "pml", "rb", "rtf", "snb", "tcr", "txt", "txtz"}
@@ -86,20 +83,15 @@ func readInputFromConsole() {
 	checkThenChangeWorkingDir()
 
 	userInput := bufio.NewReader(os.Stdin)
-	log.Println("Choose the book's path:")
-	fp := filepicker.New()
-	fp.Path, _ = os.UserHomeDir()
-	fp.CurrentDirectory, _ = os.Getwd()
-	fp.AllowedTypes = inputFormats
-	fmodel := PickerModel{filepicker: fp}
-	teaModel, _ := tea.NewProgram(&fmodel, tea.WithOutput(os.Stderr)).StartReturningModel()
-	mm := teaModel.(PickerModel)
-	assignInputPath(mm.selectedFile)
-	log.Println("Selected file:", mm.selectedFile)
+	log.Println("Enter the book's path OR drag your book here:")
+	fmt.Print("                    ")
+	scanValue, _ := userInput.ReadString('\n')
+	scanValue = strings.TrimSpace(scanValue)
+	assignInputPath(scanValue)
 
 	log.Println("Enter hint level (1-5): ")
 	fmt.Print("                    ")
-	scanValue, _ := userInput.ReadString('\n')
+	scanValue, _ = userInput.ReadString('\n')
 	scanValue = strings.TrimSpace(scanValue)
 	assignHintLevel(scanValue)
 
@@ -186,7 +178,6 @@ func checkThenChangeWorkingDir() {
 	if !isFoundResources {
 		execPath, _ := os.Executable()
 		workingDir := filepath.Dir(execPath)
-		fmt.Println("workingDir", workingDir)
 		os.Chdir(workingDir)
 	}
 }
