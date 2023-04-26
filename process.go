@@ -22,7 +22,7 @@ func processHtmlBookData(wordwiseDict *map[string]DictRow, lemmaDict *map[string
 
 	bbytes, err := os.ReadFile(htmlBookPath)
 	if err != nil {
-		log.Fatalln("Error when open ", htmlBookPath, "->", err)
+		logFatalln("Error when open ", htmlBookPath, "->", err)
 	}
 
 	chars := []rune(string(bbytes))

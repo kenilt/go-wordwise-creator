@@ -1,22 +1,29 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
 	"strconv"
+	"strings"
 )
 
+var inputFormats = []string{"azw", "azw3", "azw4", "cbz", "cbr", "cb7", "cbc", "chm", "djvu", "docx", "epub", "fb2", "fbz", "html", "htmlz", "lit", "lrf", "mobi", "odt", "pdf", "prc", "pdb", "pml", "rb", "rtf", "snb", "tcr", "txt", "txtz"}
+var outputFormats = []string{"azw3", "epub", "docx", "fb2", "htmlz", "oeb", "lit", "lrf", "mobi", "pdb", "pmlz", "rb", "pdf", "rtf", "snb", "tcr", "txt", "txtz", "zip"}
 var hintLevel int = 5
 var formatType string
 var inputPath string
+var wLang string = "en"
 var isVietnamese bool = false
+var isDoubleClick bool = false
 
 func main() {
 	readInputParams(os.Args)
 
-	log.Println("[+] Hint level:", hintLevel)
-	log.Println("[+] Format type:", formatType)
+	log.Println("[+] Input path:", inputPath)
+	log.Println(fmt.Sprintf("[+] Hint level: %d, Output format type: %s, Language: %s", hintLevel, formatType, wLang))
 
 	log.Println("[+] Load wordwise dict")
 	wordwiseDict := loadWordwiseDict()
@@ -44,40 +51,116 @@ func main() {
 	createBookWithWordwised(inputPath)
 
 	cleanTempData()
+	if isDoubleClick {
+		pauseConsole()
+	}
 }
 
 func readInputParams(args []string) {
 	if len(args) < 2 {
-		log.Println(`
-Usage: go run . input_file hint_level format_type
-- input_file: A path to file need to generate wordwise
-- hint_level: From 1 to 5, where 5 shows all wordwise hints, and 1 shows hints only for hard words with definitions. The default is 5
-- format_type: The format type of output book, (ex: "epub"). The default is use the input format. Note: the "mobi" format is not compatiable with this tool.
-- language: The language output for wordwise meaning is only supported in "en" and "vi"
+		isDoubleClick = true
+		readInputFromConsole()
+	} else {
+		assignInputPath(args[1])
 
-The output book will be exported at the same location with the input book with "-wordwise" suffix.
-		`)
-		os.Exit(0)
-	}
+		if len(args) > 2 {
+			assignHintLevel(args[2])
+		}
 
-	inputPath = args[1]
-	if len(args) > 2 {
-		parseNum, err := strconv.Atoi(args[2])
-		if err == nil {
-			hintLevel = parseNum
+		if len(args) > 3 {
+			assignOutputFormat(args[3])
+		} else {
+			assignOutputFormat("")
+		}
+
+		if len(args) > 4 {
+			assignLanguage(args[4])
 		}
 	}
-	if len(args) > 3 {
-		formatType = args[3]
-	}
-	if len(args) > 4 {
-		wLang := args[4]
-		if wLang == "vi" {
-			isVietnamese = true
-		}
-	}
+}
 
+func readInputFromConsole() {
+	log.Println("Enter the book's path:")
+	fmt.Print("                    ")
+	userInput := bufio.NewReader(os.Stdin)
+	scanValue, _ := userInput.ReadString('\n')
+	scanValue = strings.TrimSuffix(scanValue, "\n")
+	assignInputPath(scanValue)
+
+	log.Println("Enter hint level (1-5): ")
+	fmt.Print("                    ")
+	scanValue, _ = userInput.ReadString('\n')
+	scanValue = strings.TrimSpace(scanValue)
+	assignHintLevel(scanValue)
+
+	log.Println("Enter output format (not support \"mobi\"): ")
+	fmt.Print("                    ")
+	scanValue, _ = userInput.ReadString('\n')
+	scanValue = strings.TrimSuffix(scanValue, "\n")
+	assignOutputFormat(scanValue)
+
+	log.Println("Enter language (\"en\" or \"vi\" only): ")
+	fmt.Print("                    ")
+	scanValue, _ = userInput.ReadString('\n')
+	scanValue = strings.TrimSuffix(scanValue, "\n")
+	assignLanguage(scanValue)
+}
+
+func assignInputPath(scanValue string) {
+	inputPath = scanValue
 	if _, err := os.Stat(inputPath); err != nil {
-		log.Fatalln(fmt.Sprintf("File at %s is not found!", inputPath))
+		logFatalln(fmt.Sprintf("File at %s is not found!", inputPath))
 	}
+}
+
+func assignHintLevel(scanValue string) {
+	parseNum, err := strconv.Atoi(scanValue)
+	if err == nil {
+		hintLevel = parseNum
+	}
+}
+
+func assignOutputFormat(scanValue string) {
+	if contains(outputFormats, scanValue) {
+		formatType = scanValue
+	} else {
+		extension := strings.Trim(filepath.Ext(inputPath), ".")
+		if contains(outputFormats, extension) {
+			formatType = extension
+		} else {
+			formatType = "epub"
+		}
+	}
+}
+
+func assignLanguage(scanValue string) {
+	wLang = scanValue
+	if wLang == "vi" {
+		isVietnamese = true
+	} else {
+		wLang = "en"
+	}
+}
+
+func contains(s []string, str string) bool {
+	for _, v := range s {
+		if v == str {
+			return true
+		}
+	}
+
+	return false
+}
+
+func logFatalln(v ...any) {
+	log.Println(v...)
+	if isDoubleClick {
+		pauseConsole()
+	}
+	os.Exit(1)
+}
+
+func pauseConsole() {
+	log.Println("Press the Enter Key to exit!")
+	fmt.Scanln()
 }

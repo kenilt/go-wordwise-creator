@@ -26,7 +26,7 @@ func loadWordwiseDict() *map[string]DictRow {
 
 	file, err := os.Open(WordwiseDictionaryPath)
 	if err != nil {
-		log.Fatalln("Error when open ", WordwiseDictionaryPath, "->", err)
+		logFatalln("Error when open ", WordwiseDictionaryPath, "->", err)
 	}
 	defer func() {
 		err := file.Close()
@@ -44,7 +44,7 @@ func loadWordwiseDict() *map[string]DictRow {
 	// skip header
 	record, err := reader.Read()
 	if err == io.EOF {
-		log.Fatalln("Empty csv file")
+		logFatalln("Empty csv file")
 	}
 
 	count := 0
@@ -55,7 +55,7 @@ func loadWordwiseDict() *map[string]DictRow {
 			break
 		}
 		if err != nil {
-			log.Fatalln("Error when scan word ", count, "->", err)
+			logFatalln("Error when scan word ", count, "->", err)
 		}
 
 		if len(record) < 5 {
@@ -90,7 +90,7 @@ func loadLemmatizerDict() *map[string]string {
 
 	file, err := os.Open(LemmaDictionaryPath)
 	if err != nil {
-		log.Fatalln("Error when open ", LemmaDictionaryPath, "->", err)
+		logFatalln("Error when open ", LemmaDictionaryPath, "->", err)
 	}
 	defer func() {
 		err := file.Close()
@@ -111,7 +111,7 @@ func loadLemmatizerDict() *map[string]string {
 			break
 		}
 		if err != nil {
-			log.Fatalln("Error when scan word ", count, "->", err)
+			logFatalln("Error when scan word ", count, "->", err)
 		}
 
 		if len(record) < 2 {
