@@ -31,7 +31,7 @@ func convertBookToHtml(inputPath string) {
 	time.Sleep(50 * time.Millisecond)
 
 	if _, err := os.Stat(tempBookPath + "/index1.html"); err != nil {
-		log.Fatalln("Please check if you have installed Calibre. Can you run the command 'ebook-convert' in your shell? I cannot access the 'ebook-convert' command in your system's shell. This script requires Calibre to process ebook texts.")
+		logFatalln("Please check if you have installed Calibre. Can you run the command 'ebook-convert' in your shell? I cannot access the 'ebook-convert' command in your system's shell. This script requires Calibre to process ebook texts.")
 	}
 }
 
