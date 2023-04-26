@@ -91,9 +91,9 @@ func readInputFromConsole() {
 	fp.Path, _ = os.UserHomeDir()
 	fp.CurrentDirectory, _ = os.Getwd()
 	fp.AllowedTypes = inputFormats
-	fmodel := model{filepicker: fp}
+	fmodel := PickerModel{filepicker: fp}
 	teaModel, _ := tea.NewProgram(&fmodel, tea.WithOutput(os.Stderr)).StartReturningModel()
-	mm := teaModel.(model)
+	mm := teaModel.(PickerModel)
 	assignInputPath(mm.selectedFile)
 	log.Println("Selected file:", mm.selectedFile)
 

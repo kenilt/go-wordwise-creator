@@ -9,17 +9,17 @@ import (
 	"github.com/kenilt/go-wordwise-creator/filepicker"
 )
 
-type model struct {
+type PickerModel struct {
 	filepicker   filepicker.Model
 	selectedFile string
 	quitting     bool
 }
 
-func (m model) Init() tea.Cmd {
+func (m PickerModel) Init() tea.Cmd {
 	return m.filepicker.Init()
 }
 
-func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (m PickerModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.String() {
@@ -44,7 +44,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, cmd
 }
 
-func (m model) View() string {
+func (m PickerModel) View() string {
 	if m.quitting {
 		return ""
 	}
@@ -62,10 +62,10 @@ func main1() {
 	fp.Path, _ = os.UserHomeDir()
 	fp.CurrentDirectory, _ = os.Getwd()
 
-	m := model{
+	m := PickerModel{
 		filepicker: fp,
 	}
 	tm, _ := tea.NewProgram(&m, tea.WithOutput(os.Stderr)).StartReturningModel()
-	mm := tm.(model)
+	mm := tm.(PickerModel)
 	fmt.Println("\n  You selected: " + m.filepicker.Styles.Selected.Render(mm.selectedFile) + "\n")
 }
