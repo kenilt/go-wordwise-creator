@@ -74,3 +74,10 @@ Use Excel or Google Sheet to edit the `wordwise-dict.csv` file, use Google Trans
 `GOOS=darwin GOARCH=amd64 go build`  
 
 Then zip the bin file with resources folder
+
+### To auto build for MacOS and Windows
+
+Give permission for sh script  
+`chmod +x autobuild.sh`
+Run the autobuild
+`./autobuild.sh`
