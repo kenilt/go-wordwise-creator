@@ -10,14 +10,13 @@ import (
 	"strings"
 )
 
-var inputFormats = []string{"azw", "azw3", "azw4", "cbz", "cbr", "cb7", "cbc", "chm", "djvu", "docx", "epub", "fb2", "fbz", "html", "htmlz", "lit", "lrf", "mobi", "odt", "pdf", "prc", "pdb", "pml", "rb", "rtf", "snb", "tcr", "txt", "txtz"}
 var outputFormats = []string{"azw3", "epub", "docx", "fb2", "htmlz", "oeb", "lit", "lrf", "mobi", "pdb", "pmlz", "rb", "pdf", "rtf", "snb", "tcr", "txt", "txtz", "zip"}
 var hintLevel int = 5
 var formatType string
 var inputPath string
 var wLang string = "en"
 var isVietnamese bool = false
-var isDoubleClick bool = false
+var isDirectRun bool = false
 
 func main() {
 	readInputParams(os.Args)
@@ -51,14 +50,14 @@ func main() {
 	createBookWithWordwised(inputPath)
 
 	cleanTempData()
-	if isDoubleClick {
+	if isDirectRun {
 		pauseConsole()
 	}
 }
 
 func readInputParams(args []string) {
 	if len(args) < 2 {
-		isDoubleClick = true
+		isDirectRun = true
 		readInputFromConsole()
 	} else {
 		assignInputPath(args[1])
@@ -109,7 +108,7 @@ func readInputFromConsole() {
 }
 
 func assignInputPath(scanValue string) {
-	inputPath = scanValue
+	inputPath = strings.ReplaceAll(strings.Trim(scanValue, "\""), "\\ ", " ")
 	if _, err := os.Stat(inputPath); err != nil {
 		logFatalln(fmt.Sprintf("File at %s is not found!", inputPath))
 	}
@@ -156,7 +155,7 @@ func contains(s []string, str string) bool {
 
 func logFatalln(v ...any) {
 	log.Println(v...)
-	if isDoubleClick {
+	if isDirectRun {
 		pauseConsole()
 	}
 	os.Exit(1)
