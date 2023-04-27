@@ -23,8 +23,8 @@ And use Google stranslate to prepare resource for vietnamese meaning
 - You need to install [Calibre](https://calibre-ebook.com/)  
     + On MacOS, install Calibre at `/Applications`, if not please correct config in your path  
 - Download the latest version from [latest release](https://github.com/kenilt/go-wordwise-creator/releases/latest)  
-- Unzip the downloaded file  
-- Run the command  
+- Unzip the downloaded file then double click on the `go-wordwise-creator` binary file to run.  
+- OR you can run by the command  
     + On Windows: `go-wordwise-creator.exe input_path hint_level format_type language`  
     + On MacOS: `./go-wordwise-creator input_path hint_level format_type language`
 
@@ -78,6 +78,6 @@ Then zip the bin file with resources folder
 ### To auto build for MacOS and Windows
 
 Give permission for sh script  
-`chmod +x autobuild.sh`
-Run the autobuild
-`./autobuild.sh`
+`chmod +x autobuild.sh`  
+Run the autobuild  
+`./autobuild.sh`  
