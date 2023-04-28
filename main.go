@@ -25,10 +25,10 @@ func main() {
 	log.Println(fmt.Sprintf("[+] Hint level: %d, Output format type: %s, Language: %s", hintLevel, formatType, wLang))
 
 	log.Println("[+] Load wordwise dict")
-	wordwiseDict := loadWordwiseDict()
+	loadWordwiseDict()
 
 	log.Println("[+] Load lemma dict")
-	lemmaDict := loadLemmatizerDict()
+	loadLemmatizerDict()
 
 	// clean old temp
 	log.Println("[+] Cleaning old temp files")
@@ -43,7 +43,7 @@ func main() {
 
 	// process book
 	log.Println("[+] Process book with wordwise")
-	processHtmlBookData(wordwiseDict, lemmaDict)
+	processHtmlBookData()
 	modifyCalibreTitle()
 
 	// create wordwise book

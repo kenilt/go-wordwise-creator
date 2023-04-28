@@ -17,7 +17,7 @@ const (
 	Collecting
 )
 
-func processHtmlBookData(wordwiseDict *map[string]DictRow, lemmaDict *map[string]string) {
+func processHtmlBookData() {
 	htmlBookPath := fmt.Sprintf("%s/%s/index1.html", TempDir, TempBookName)
 
 	bbytes, err := os.ReadFile(htmlBookPath)
@@ -43,7 +43,7 @@ func processHtmlBookData(wordwiseDict *map[string]DictRow, lemmaDict *map[string
 			collected := collectBuilder.String()
 			trimmed := strings.TrimSpace(collected)
 			if isSawBody && len(trimmed) > 0 {
-				processed, count, total := processBlock(collected, wordwiseDict, lemmaDict)
+				processed, total, count := processBlock(collected)
 				bookBuilder.WriteString(processed)
 				wordwiseCount += count
 				totalCount += total
@@ -89,46 +89,81 @@ func processHtmlBookData(wordwiseDict *map[string]DictRow, lemmaDict *map[string
 	}
 }
 
-func processBlock(content string, wordwiseDict *map[string]DictRow, lemmaDict *map[string]string) (string, int, int) {
-	count := 0
-	words := strings.Split(content, " ")
-	for i := 0; i < len(words); i++ {
-		word := cleanWord(words[i])
-
-		// first, find the word in dict
-		ws, ok := (*wordwiseDict)[word]
-		if !ok {
-			// not found, find it normal form
-			lm, ok := (*lemmaDict)[word]
-			if !ok {
-				continue
-			}
-			// then, find the normal form in dict
-			ws, ok = (*wordwiseDict)[lm]
-			if !ok {
-				continue
-			}
-		}
-
-		if ws.HintLvl > hintLevel {
-			continue
-		}
-
-		var meaning string
-		if isVietnamese {
-			if len(ws.Phoneme) > 0 {
-				meaning = ws.Phoneme + " " + ws.Vi
-			} else {
-				meaning = ws.Vi
-			}
+func processBlock(content string) (string, int, int) {
+	chars := []rune(string(content))
+	charLength := len(chars)
+	total, count := 0, 0
+	var resBuilder strings.Builder
+	var wordBuilder strings.Builder
+	for i := 0; i < charLength; i++ {
+		char := chars[i]
+		if char == ' ' || char == '–' || char == '—' || // space, en dash, em dash
+			(char == '-' && i < charLength-1 && chars[i+1] == '-') { // double hyphens
+			total, count = processWord(&wordBuilder, &resBuilder, total, count)
+			resBuilder.WriteRune(char)
 		} else {
-			meaning = ws.En
+			wordBuilder.WriteRune(char)
 		}
+	}
 
-		words[i] = fmt.Sprintf("<ruby>%v<rt>%v</rt></ruby>", words[i], meaning)
+	total, count = processWord(&wordBuilder, &resBuilder, total, count)
+
+	return resBuilder.String(), total, count
+}
+
+func processWord(wordBuilder *strings.Builder, resBuilder *strings.Builder, total int, count int) (int, int) {
+	word := wordBuilder.String()
+	wordBuilder.Reset()
+	moddedWord, isProcess := getWordwiseWord(word)
+	resBuilder.WriteString(moddedWord)
+	if isProcess {
 		count++
 	}
-	return strings.Join(words, " "), count, len(words)
+	total++
+	return total, count
+}
+
+func getWordwiseWord(orgWord string) (string, bool) {
+	ws := findWordwiseInDictionary(cleanWord(orgWord))
+	if ws == nil {
+		return orgWord, false
+	}
+
+	var meaning string
+	if isVietnamese {
+		if len(ws.Phoneme) > 0 {
+			meaning = ws.Phoneme + " " + ws.Vi
+		} else {
+			meaning = ws.Vi
+		}
+	} else {
+		meaning = ws.En
+	}
+
+	return fmt.Sprintf("<ruby>%v<rt>%v</rt></ruby>", orgWord, meaning), true
+}
+
+func findWordwiseInDictionary(word string) *DictRow {
+	// first, find the word in dict
+	ws, isFound := (*wordwiseDict)[word]
+	if !isFound {
+		// not found, find its normal form
+		lm, isFound := (*lemmaDict)[word]
+		if !isFound {
+			return nil
+		}
+		// then, find the normal form in dict
+		ws, isFound = (*wordwiseDict)[lm]
+		if !isFound {
+			return nil
+		}
+	}
+
+	if ws.HintLvl > hintLevel {
+		return nil
+	}
+
+	return &ws
 }
 
 // Remove special characters from word
