@@ -95,32 +95,85 @@ func processBlock(content string) (string, int, int) {
 	total, count := 0, 0
 	var resBuilder strings.Builder
 	var wordBuilder strings.Builder
+
 	for i := 0; i < charLength; i++ {
 		char := chars[i]
 		if char == ' ' || char == '–' || char == '—' || // space, en dash, em dash
 			(char == '-' && i < charLength-1 && chars[i+1] == '-') { // double hyphens
-			total, count = processWord(&wordBuilder, &resBuilder, total, count)
-			resBuilder.WriteRune(char)
+			word := wordBuilder.String()
+			wordBuilder.Reset()
+
+			moddedWord, isProcess := getWordwiseWord(word)
+			if isProcess {
+				resBuilder.WriteString(moddedWord)
+				resBuilder.WriteRune(char)
+				count++
+			} else {
+				phrase, pLen := processPharse(chars, word, i)
+				if pLen > 0 {
+					resBuilder.WriteString(phrase)
+					i = i + pLen - len(word) - 1
+					count++
+				} else {
+					resBuilder.WriteString(moddedWord)
+					resBuilder.WriteRune(char)
+				}
+			}
+			total++
 		} else {
 			wordBuilder.WriteRune(char)
 		}
 	}
 
-	total, count = processWord(&wordBuilder, &resBuilder, total, count)
-
-	return resBuilder.String(), total, count
-}
-
-func processWord(wordBuilder *strings.Builder, resBuilder *strings.Builder, total int, count int) (int, int) {
-	word := wordBuilder.String()
-	wordBuilder.Reset()
-	moddedWord, isProcess := getWordwiseWord(word)
+	lastWord := wordBuilder.String()
+	moddedWord, isProcess := getWordwiseWord(lastWord)
 	resBuilder.WriteString(moddedWord)
 	if isProcess {
 		count++
 	}
 	total++
-	return total, count
+
+	return resBuilder.String(), total, count
+}
+
+func processPharse(chars []rune, word string, from int) (string, int) {
+	var sb strings.Builder
+	sb.WriteString(word)
+	wordCount := 0
+	for i := from; i < len(chars); i++ {
+		char := chars[i]
+		if char == ' ' {
+			wordCount++
+			if wordCount > 5 {
+				break
+			}
+
+			if wordCount > 1 {
+				phrase := sb.String()
+				ws := findWordwiseInDictionary(cleanWord(phrase))
+				if ws != nil {
+					var meaning string
+					if isVietnamese {
+						if len(ws.Phoneme) > 0 {
+							meaning = ws.Phoneme + " " + ws.Vi
+						} else {
+							meaning = ws.Vi
+						}
+					} else {
+						meaning = ws.En
+					}
+					trimmed := trimWord(phrase)
+					modded := fmt.Sprintf("<ruby>%v<rt>%v</rt></ruby>", trimmed, meaning)
+					resWord := strings.Replace(phrase, trimmed, modded, 1)
+					return resWord, len(phrase)
+				}
+			}
+			sb.WriteRune(char)
+		} else {
+			sb.WriteRune(char)
+		}
+	}
+	return "", 0
 }
 
 func getWordwiseWord(orgWord string) (string, bool) {
@@ -140,7 +193,10 @@ func getWordwiseWord(orgWord string) (string, bool) {
 		meaning = ws.En
 	}
 
-	return fmt.Sprintf("<ruby>%v<rt>%v</rt></ruby>", orgWord, meaning), true
+	trimmed := trimWord(orgWord)
+	modded := fmt.Sprintf("<ruby>%v<rt>%v</rt></ruby>", trimmed, meaning)
+	resWord := strings.Replace(orgWord, trimmed, modded, 1)
+	return resWord, true
 }
 
 func findWordwiseInDictionary(word string) *DictRow {
@@ -168,7 +224,11 @@ func findWordwiseInDictionary(word string) *DictRow {
 
 // Remove special characters from word
 func cleanWord(word string) string {
-	return strings.ToLower(strings.Trim(word, ".?!,:;()[]{}<>“”‘’\"'`…*•&#~"))
+	return strings.ToLower(trimWord(word))
+}
+
+func trimWord(word string) string {
+	return strings.Trim(word, ".?!,:;()[]{}<>“”‘’\"'`…*•&#~")
 }
 
 func modifyCalibreTitle() {
