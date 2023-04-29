@@ -114,11 +114,12 @@ func processBlock(content string) (string, int, int) {
 				resBuilder.WriteRune(char)
 				count++
 			} else {
-				phrase, pLen := getWordwisePhrase(chars, word, i)
-				if pLen > 0 {
-					resBuilder.WriteString(phrase)
-					i = i + pLen - len(word) - 1 // -1 because it has i++ end of each loop
+				phrase, converted := getWordwisePhrase(chars, word, i)
+				if len(converted) > 0 {
+					resBuilder.WriteString(converted)
+					i = i + len(phrase) - len(word) - 1 // -1 because it has i++ end of each loop
 					count++
+					total += len(strings.Fields(phrase)) - 1 // -1 because it will be increase by total++ each loop
 				} else {
 					resBuilder.WriteString(moddedWord)
 					resBuilder.WriteRune(char)
@@ -148,7 +149,7 @@ func processBlock(content string) (string, int, int) {
 // process based on the original chars from a position, word is the last word before from
 // Its process do by combine "word" + some next word then find it in the dictionary
 // Return the modded phrase, and len of original phrase
-func getWordwisePhrase(chars []rune, word string, from int) (string, int) {
+func getWordwisePhrase(chars []rune, word string, from int) (string, string) {
 	var sb strings.Builder
 	sb.WriteString(word)
 	wordCount := 0
@@ -177,7 +178,7 @@ func getWordwisePhrase(chars []rune, word string, from int) (string, int) {
 					trimmed := trimWord(phrase)
 					modded := fmt.Sprintf("<ruby>%v<rt>%v</rt></ruby>", trimmed, meaning)
 					resWord := strings.Replace(phrase, trimmed, modded, 1)
-					return resWord, len(phrase)
+					return phrase, resWord
 				}
 			}
 			sb.WriteRune(char)
@@ -185,7 +186,34 @@ func getWordwisePhrase(chars []rune, word string, from int) (string, int) {
 			sb.WriteRune(char)
 		}
 	}
-	return "", 0
+
+	wordCount++
+	if wordCount > 1 && wordCount <= 5 {
+		phrase := sb.String()
+		ws := findWordwiseInDictionary(cleanWord(phrase))
+		if ws != nil {
+			var meaning string
+			if isVietnamese {
+				if len(ws.Phoneme) > 0 {
+					meaning = ws.Phoneme + " " + ws.Vi
+				} else {
+					meaning = ws.Vi
+				}
+			} else {
+				meaning = ws.En
+			}
+			trimmed := trimWord(phrase)
+			modded := fmt.Sprintf("<ruby>%v<rt>%v</rt></ruby>", trimmed, meaning)
+			resWord := strings.Replace(phrase, trimmed, modded, 1)
+			return phrase, resWord
+		}
+	}
+
+	return "", ""
+}
+
+func convertThePhrase() {
+
 }
 
 // originalWord is raw and contains functual marks, ex: "\"Whosever,.."
@@ -244,7 +272,7 @@ func cleanWord(word string) string {
 
 // Trim special characters from word
 func trimWord(word string) string {
-	return strings.Trim(word, ".?!,:;()[]{}<>“”‘’\"'`…*•&#~")
+	return strings.Trim(word, ".?!,:;()[]{}<>“”‘’\"'`…*•-&#~")
 }
 
 func modifyCalibreTitle() {
