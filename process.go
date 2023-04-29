@@ -25,7 +25,23 @@ func processHtmlBookData() {
 		logFatalln("Error when open ", htmlBookPath, "->", err)
 	}
 
-	chars := []rune(string(bbytes))
+	processedContent := processHtmlData(string(bbytes))
+
+	fo, err := os.Create(htmlBookPath)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer fo.Close()
+
+	_, err2 := fo.WriteString(processedContent)
+
+	if err2 != nil {
+		log.Fatal(err2)
+	}
+}
+
+func processHtmlData(htmlContent string) string {
+	chars := []rune(htmlContent)
 	charLength := len(chars)
 	var bookBuilder strings.Builder
 	wordwiseCount := 0
@@ -75,18 +91,7 @@ func processHtmlBookData() {
 	bar.Set(100)
 
 	log.Println(fmt.Sprintf("--> Processed %d words, Added wordwise for %d words", totalCount, wordwiseCount))
-
-	fo, err := os.Create(htmlBookPath)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer fo.Close()
-
-	_, err2 := fo.WriteString(bookBuilder.String())
-
-	if err2 != nil {
-		log.Fatal(err2)
-	}
+	return bookBuilder.String()
 }
 
 func processBlock(content string) (string, int, int) {
@@ -109,17 +114,19 @@ func processBlock(content string) (string, int, int) {
 				resBuilder.WriteRune(char)
 				count++
 			} else {
-				phrase, pLen := processPharse(chars, word, i)
+				phrase, pLen := getWordwisePhrase(chars, word, i)
 				if pLen > 0 {
 					resBuilder.WriteString(phrase)
-					i = i + pLen - len(word) - 1
+					i = i + pLen - len(word) - 1 // -1 because it has i++ end of each loop
 					count++
 				} else {
 					resBuilder.WriteString(moddedWord)
 					resBuilder.WriteRune(char)
 				}
 			}
-			total++
+			if len(word) > 0 {
+				total++
+			}
 		} else {
 			wordBuilder.WriteRune(char)
 		}
@@ -131,12 +138,17 @@ func processBlock(content string) (string, int, int) {
 	if isProcess {
 		count++
 	}
-	total++
+	if len(lastWord) > 0 {
+		total++
+	}
 
 	return resBuilder.String(), total, count
 }
 
-func processPharse(chars []rune, word string, from int) (string, int) {
+// process based on the original chars from a position, word is the last word before from
+// Its process do by combine "word" + some next word then find it in the dictionary
+// Return the modded phrase, and len of original phrase
+func getWordwisePhrase(chars []rune, word string, from int) (string, int) {
 	var sb strings.Builder
 	sb.WriteString(word)
 	wordCount := 0
@@ -176,10 +188,11 @@ func processPharse(chars []rune, word string, from int) (string, int) {
 	return "", 0
 }
 
-func getWordwiseWord(orgWord string) (string, bool) {
-	ws := findWordwiseInDictionary(cleanWord(orgWord))
+// originalWord is raw and contains functual marks, ex: "\"Whosever,.."
+func getWordwiseWord(originalWord string) (string, bool) {
+	ws := findWordwiseInDictionary(cleanWord(originalWord))
 	if ws == nil {
-		return orgWord, false
+		return originalWord, false
 	}
 
 	var meaning string
@@ -193,40 +206,43 @@ func getWordwiseWord(orgWord string) (string, bool) {
 		meaning = ws.En
 	}
 
-	trimmed := trimWord(orgWord)
+	trimmed := trimWord(originalWord)
 	modded := fmt.Sprintf("<ruby>%v<rt>%v</rt></ruby>", trimmed, meaning)
-	resWord := strings.Replace(orgWord, trimmed, modded, 1)
+	resWord := strings.Replace(originalWord, trimmed, modded, 1)
 	return resWord, true
 }
 
+// word has to be cleanned and lowercased
 func findWordwiseInDictionary(word string) *DictRow {
-	// first, find the word in dict
-	ws, isFound := (*wordwiseDict)[word]
+	// first, find the word in wordwise dictionary
+	dicRow, isFound := (*wordwiseDict)[word]
 	if !isFound {
 		// not found, find its normal form
-		lm, isFound := (*lemmaDict)[word]
+		normalForm, isFound := (*lemmaDict)[word]
 		if !isFound {
 			return nil
 		}
-		// then, find the normal form in dict
-		ws, isFound = (*wordwiseDict)[lm]
+		// then, find the normal form word in wordwise dictionary
+		dicRow, isFound = (*wordwiseDict)[normalForm]
 		if !isFound {
 			return nil
 		}
 	}
 
-	if ws.HintLvl > hintLevel {
+	// skip the word if hint level is not pass
+	if dicRow.HintLvl > hintLevel {
 		return nil
 	}
 
-	return &ws
+	return &dicRow
 }
 
-// Remove special characters from word
+// Trim special characters from word, then lowercase
 func cleanWord(word string) string {
 	return strings.ToLower(trimWord(word))
 }
 
+// Trim special characters from word
 func trimWord(word string) string {
 	return strings.Trim(word, ".?!,:;()[]{}<>“”‘’\"'`…*•&#~")
 }
