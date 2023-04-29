@@ -108,20 +108,20 @@ func processBlock(content string) (string, int, int) {
 			word := wordBuilder.String()
 			wordBuilder.Reset()
 
-			moddedWord, isProcess := getWordwiseWord(word)
-			if isProcess {
+			moddedWord, isProcess := getWordwiseWord(word) // single word
+			if isProcess {                                 // if single word matched
 				resBuilder.WriteString(moddedWord)
 				resBuilder.WriteRune(char)
 				count++
-			} else {
+			} else { // try to find meaning of pharse start from the word
 				phrase, converted := getWordwisePhrase(chars, word, i)
-				if len(converted) > 0 {
+				if len(converted) > 0 { // found the valid phrase
 					resBuilder.WriteString(converted)
 					i = i + len(phrase) - len(word) - 1 // -1 because it has i++ end of each loop
 					count++
 					total += len(strings.Fields(phrase)) - 1 // -1 because it will be increase by total++ each loop
-				} else {
-					resBuilder.WriteString(moddedWord)
+				} else { // not found any meaning, write to orignal word to result
+					resBuilder.WriteString(word)
 					resBuilder.WriteRune(char)
 				}
 			}
@@ -146,8 +146,22 @@ func processBlock(content string) (string, int, int) {
 	return resBuilder.String(), total, count
 }
 
+// originalWord is raw and contains functual marks, ex: "\"Whosever,.."
+func getWordwiseWord(originalWord string) (string, bool) {
+	ws := findWordwiseInDictionary(cleanWord(originalWord))
+	if ws == nil {
+		return originalWord, false
+	}
+
+	trimmed := trimWord(originalWord)
+	modded := fmt.Sprintf("<ruby>%v<rt>%v</rt></ruby>", trimmed, ws.meaning(isVietnamese))
+	resWord := strings.Replace(originalWord, trimmed, modded, 1)
+	return resWord, true
+}
+
 // process based on the original chars from a position, word is the last word before from
 // Its process do by combine "word" + some next word then find it in the dictionary
+// It supports maximum is 5 words
 // Return the modded phrase, and len of original phrase
 func getWordwisePhrase(chars []rune, word string, from int) (string, string) {
 	var sb strings.Builder
@@ -165,18 +179,8 @@ func getWordwisePhrase(chars []rune, word string, from int) (string, string) {
 				phrase := sb.String()
 				ws := findWordwiseInDictionary(cleanWord(phrase))
 				if ws != nil {
-					var meaning string
-					if isVietnamese {
-						if len(ws.Phoneme) > 0 {
-							meaning = ws.Phoneme + " " + ws.Vi
-						} else {
-							meaning = ws.Vi
-						}
-					} else {
-						meaning = ws.En
-					}
 					trimmed := trimWord(phrase)
-					modded := fmt.Sprintf("<ruby>%v<rt>%v</rt></ruby>", trimmed, meaning)
+					modded := fmt.Sprintf("<ruby>%v<rt>%v</rt></ruby>", trimmed, ws.meaning(isVietnamese))
 					resWord := strings.Replace(phrase, trimmed, modded, 1)
 					return phrase, resWord
 				}
@@ -192,52 +196,14 @@ func getWordwisePhrase(chars []rune, word string, from int) (string, string) {
 		phrase := sb.String()
 		ws := findWordwiseInDictionary(cleanWord(phrase))
 		if ws != nil {
-			var meaning string
-			if isVietnamese {
-				if len(ws.Phoneme) > 0 {
-					meaning = ws.Phoneme + " " + ws.Vi
-				} else {
-					meaning = ws.Vi
-				}
-			} else {
-				meaning = ws.En
-			}
 			trimmed := trimWord(phrase)
-			modded := fmt.Sprintf("<ruby>%v<rt>%v</rt></ruby>", trimmed, meaning)
+			modded := fmt.Sprintf("<ruby>%v<rt>%v</rt></ruby>", trimmed, ws.meaning(isVietnamese))
 			resWord := strings.Replace(phrase, trimmed, modded, 1)
 			return phrase, resWord
 		}
 	}
 
 	return "", ""
-}
-
-func convertThePhrase() {
-
-}
-
-// originalWord is raw and contains functual marks, ex: "\"Whosever,.."
-func getWordwiseWord(originalWord string) (string, bool) {
-	ws := findWordwiseInDictionary(cleanWord(originalWord))
-	if ws == nil {
-		return originalWord, false
-	}
-
-	var meaning string
-	if isVietnamese {
-		if len(ws.Phoneme) > 0 {
-			meaning = ws.Phoneme + " " + ws.Vi
-		} else {
-			meaning = ws.Vi
-		}
-	} else {
-		meaning = ws.En
-	}
-
-	trimmed := trimWord(originalWord)
-	modded := fmt.Sprintf("<ruby>%v<rt>%v</rt></ruby>", trimmed, meaning)
-	resWord := strings.Replace(originalWord, trimmed, modded, 1)
-	return resWord, true
 }
 
 // word has to be cleanned and lowercased

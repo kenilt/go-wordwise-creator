@@ -7,8 +7,8 @@ import (
 func TestProcessHtmlData_SingleWord(t *testing.T) {
 	setup()
 
-	data := "<body><p>{\"Lantern?\",..}  CENTIME chanting!?!</p></body>"
-	expected := "<body><p>{\"<ruby>Lantern<rt>a light carried by a handle</rt></ruby>?\",..}  <ruby>CENTIME<rt>a money unit</rt></ruby> <ruby>chanting<rt>act of singing in a certain way</rt></ruby>!?!</p></body>"
+	data := "<body><p>{\"Lantern?\",..}  CENTIME the, chanting!?!</p></body>"
+	expected := "<body><p>{\"<ruby>Lantern<rt>a light carried by a handle</rt></ruby>?\",..}  <ruby>CENTIME<rt>a money unit</rt></ruby> the, <ruby>chanting<rt>act of singing in a certain way</rt></ruby>!?!</p></body>"
 	assertString(t, expected, processHtmlData(data))
 }
 

@@ -24,6 +24,18 @@ type DictRow struct {
 	HintLvl int
 }
 
+func (ws *DictRow) meaning(isVietnamese bool) string {
+	if isVietnamese {
+		if len(ws.Phoneme) > 0 {
+			return ws.Phoneme + " " + ws.Vi
+		} else {
+			return ws.Vi
+		}
+	} else {
+		return ws.En
+	}
+}
+
 // Load Dict from CSV
 func loadWordwiseDict() {
 
