@@ -41,6 +41,7 @@ func processHtmlBookData() {
 }
 
 func processHtmlData(htmlContent string) string {
+	start := time.Now()
 	chars := []rune(htmlContent)
 	charLength := len(chars)
 	var bookBuilder strings.Builder
@@ -90,7 +91,8 @@ func processHtmlData(htmlContent string) string {
 	}
 	bar.Set(100)
 
-	log.Println(fmt.Sprintf("--> Processed %d words, Added wordwise for %d words", totalCount, wordwiseCount))
+	duration := time.Since(start)
+	log.Println(fmt.Sprintf("--> Processed %d words, Added wordwise for %d words in %v", totalCount, wordwiseCount, duration))
 	return bookBuilder.String()
 }
 
