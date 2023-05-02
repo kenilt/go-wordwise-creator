@@ -10,13 +10,13 @@ And use Google stranslate to prepare resource for vietnamese meaning
 
 **WARNING: DO NOT, UNDER ANY CIRCUMSTANCES, DELETE THE FILES FOR THE SOURCE FORMAT. ALWAYS KEEP THE ORIGINAL FORMAT FOR YOUR BOOKS**
 
-## Milestones
-- [x] Port basic features from php project
+## Features
+- [x] Support multiple book formats
 - [x] Support stemming words
 - [x] Support pronunciation symbols
-- [x] Support Eng - Viet
-- [x] Support the meaning of pharse
-- [ ] Improve the performance by using multiple threads
+- [x] Support meaning in English, and Vietnamese
+- [x] Support the meaning of pharses
+- [x] The speed is impressive, almost books were processed in seconds
 
 
 ## Usage
