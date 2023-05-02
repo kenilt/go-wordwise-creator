@@ -4,8 +4,8 @@ Generate wordwise for ebook formats (EPUB, MOBI, PRC, AZW3, PDF...)
 
 This project is a golang port version of this one: https://github.com/xnohat/wordwisecreator  
 And it based on this project: https://github.com/dungxmta/wordwisecreator  
-And it also based on the data from this project https://github.com/michmech/lemmatization-lists  
-And the phonemes data from this project https://github.com/open-dict-data/ipa-dict  
+And it uses data from https://github.com/michmech/lemmatization-lists  
+And the phonemes data from https://github.com/open-dict-data/ipa-dict, https://github.com/cmusphinx/cmudict, and https://github.com/menelik3/cmudict-ipa  
 And use Google stranslate to prepare resource for vietnamese meaning
 
 **WARNING: DO NOT, UNDER ANY CIRCUMSTANCES, DELETE THE FILES FOR THE SOURCE FORMAT. ALWAYS KEEP THE ORIGINAL FORMAT FOR YOUR BOOKS**
@@ -15,15 +15,14 @@ And use Google stranslate to prepare resource for vietnamese meaning
 - [x] Support stemming words
 - [x] Support pronunciation symbols
 - [x] Support Eng - Viet
-- [ ] Support the meaning of pharse
+- [x] Support the meaning of pharse
 - [ ] Improve the performance by using multiple threads
 
 
 ## Usage
 - You need to install [Calibre](https://calibre-ebook.com/)  
     + On MacOS, install Calibre at `/Applications`, if not please correct config in your path  
-- Download the latest version from [latest release](https://github.com/kenilt/go-wordwise-creator/releases/latest)  
-- Unzip the downloaded file then double click on the `go-wordwise-creator` binary file to run.  
+- Download the latest version from [latest release](https://github.com/kenilt/go-wordwise-creator/releases/latest), unzip then double click on the `go-wordwise-creator` binary file to run.  
 - OR you can run by the command  
     + On Windows: `go-wordwise-creator.exe input_path hint_level format_type language`  
     + On MacOS: `./go-wordwise-creator input_path hint_level format_type language`

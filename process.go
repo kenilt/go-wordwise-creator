@@ -17,7 +17,7 @@ const (
 	Collecting
 )
 
-func processHtmlBookData(wordwiseDict *map[string]DictRow, lemmaDict *map[string]string) {
+func processHtmlBookData() {
 	htmlBookPath := fmt.Sprintf("%s/%s/index1.html", TempDir, TempBookName)
 
 	bbytes, err := os.ReadFile(htmlBookPath)
@@ -25,7 +25,24 @@ func processHtmlBookData(wordwiseDict *map[string]DictRow, lemmaDict *map[string
 		logFatalln("Error when open ", htmlBookPath, "->", err)
 	}
 
-	chars := []rune(string(bbytes))
+	processedContent := processHtmlData(string(bbytes))
+
+	fo, err := os.Create(htmlBookPath)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer fo.Close()
+
+	_, err2 := fo.WriteString(processedContent)
+
+	if err2 != nil {
+		log.Fatal(err2)
+	}
+}
+
+func processHtmlData(htmlContent string) string {
+	start := time.Now()
+	chars := []rune(htmlContent)
 	charLength := len(chars)
 	var bookBuilder strings.Builder
 	wordwiseCount := 0
@@ -43,7 +60,7 @@ func processHtmlBookData(wordwiseDict *map[string]DictRow, lemmaDict *map[string
 			collected := collectBuilder.String()
 			trimmed := strings.TrimSpace(collected)
 			if isSawBody && len(trimmed) > 0 {
-				processed, count, total := processBlock(collected, wordwiseDict, lemmaDict)
+				processed, total, count := processBlock(collected)
 				bookBuilder.WriteString(processed)
 				wordwiseCount += count
 				totalCount += total
@@ -74,66 +91,156 @@ func processHtmlBookData(wordwiseDict *map[string]DictRow, lemmaDict *map[string
 	}
 	bar.Set(100)
 
-	log.Println(fmt.Sprintf("--> Processed %d words, Added wordwise for %d words", totalCount, wordwiseCount))
-
-	fo, err := os.Create(htmlBookPath)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer fo.Close()
-
-	_, err2 := fo.WriteString(bookBuilder.String())
-
-	if err2 != nil {
-		log.Fatal(err2)
-	}
+	duration := time.Since(start)
+	log.Println(fmt.Sprintf("--> Processed %d words, Added wordwise for %d words in %v", totalCount, wordwiseCount, duration))
+	return bookBuilder.String()
 }
 
-func processBlock(content string, wordwiseDict *map[string]DictRow, lemmaDict *map[string]string) (string, int, int) {
-	count := 0
-	words := strings.Split(content, " ")
-	for i := 0; i < len(words); i++ {
-		word := cleanWord(words[i])
+func processBlock(content string) (string, int, int) {
+	chars := []rune(string(content))
+	charLength := len(chars)
+	total, count := 0, 0
+	var resBuilder strings.Builder
+	var wordBuilder strings.Builder
 
-		// first, find the word in dict
-		ws, ok := (*wordwiseDict)[word]
-		if !ok {
-			// not found, find it normal form
-			lm, ok := (*lemmaDict)[word]
-			if !ok {
-				continue
+	for i := 0; i < charLength; i++ {
+		char := chars[i]
+		if char == ' ' || char == '–' || char == '—' || // space, en dash, em dash
+			(char == '-' && i < charLength-1 && chars[i+1] == '-') { // double hyphens
+			word := wordBuilder.String()
+			wordBuilder.Reset()
+
+			moddedWord, isProcess := getWordwiseWord(word) // single word
+			if isProcess {                                 // if single word matched
+				resBuilder.WriteString(moddedWord)
+				resBuilder.WriteRune(char)
+				count++
+			} else { // try to find meaning of pharse start from the word
+				phrase, converted := getWordwisePhrase(chars, word, i)
+				if len(converted) > 0 { // found the valid phrase
+					resBuilder.WriteString(converted)
+					i = i + len(phrase) - len(word) - 1 // -1 because it has i++ end of each loop
+					count++
+					total += len(strings.Fields(phrase)) - 1 // -1 because it will be increase by total++ each loop
+				} else { // not found any meaning, write to orignal word to result
+					resBuilder.WriteString(word)
+					resBuilder.WriteRune(char)
+				}
 			}
-			// then, find the normal form in dict
-			ws, ok = (*wordwiseDict)[lm]
-			if !ok {
-				continue
-			}
-		}
-
-		if ws.HintLvl > hintLevel {
-			continue
-		}
-
-		var meaning string
-		if isVietnamese {
-			if len(ws.Phoneme) > 0 {
-				meaning = ws.Phoneme + " " + ws.Vi
-			} else {
-				meaning = ws.Vi
+			if len(word) > 0 {
+				total++
 			}
 		} else {
-			meaning = ws.En
+			wordBuilder.WriteRune(char)
 		}
+	}
 
-		words[i] = fmt.Sprintf("<ruby>%v<rt>%v</rt></ruby>", words[i], meaning)
+	lastWord := wordBuilder.String()
+	moddedWord, isProcess := getWordwiseWord(lastWord)
+	resBuilder.WriteString(moddedWord)
+	if isProcess {
 		count++
 	}
-	return strings.Join(words, " "), count, len(words)
+	if len(lastWord) > 0 {
+		total++
+	}
+
+	return resBuilder.String(), total, count
 }
 
-// Remove special characters from word
+// originalWord is raw and contains functual marks, ex: "\"Whosever,.."
+func getWordwiseWord(originalWord string) (string, bool) {
+	ws := findWordwiseInDictionary(cleanWord(originalWord))
+	if ws == nil {
+		return originalWord, false
+	}
+
+	resWord := wrapWithRubyTag(ws, originalWord)
+	return resWord, true
+}
+
+// process based on the original chars from a position, word is the last word before from
+// Its process do by combine "word" + some next word then find it in the dictionary
+// It supports maximum is 5 words
+// Return the modded phrase, and len of original phrase
+func getWordwisePhrase(chars []rune, word string, from int) (string, string) {
+	var sb strings.Builder
+	sb.WriteString(word)
+	wordCount := 0
+	for i := from; i < len(chars); i++ {
+		char := chars[i]
+		if char == ' ' {
+			wordCount++
+			if wordCount > 5 {
+				break
+			}
+
+			if wordCount > 1 {
+				phrase := sb.String()
+				ws := findWordwiseInDictionary(cleanWord(phrase))
+				if ws != nil {
+					resWord := wrapWithRubyTag(ws, phrase)
+					return phrase, resWord
+				}
+			}
+			sb.WriteRune(char)
+		} else {
+			sb.WriteRune(char)
+		}
+	}
+
+	wordCount++
+	if wordCount > 1 && wordCount <= 5 {
+		phrase := sb.String()
+		ws := findWordwiseInDictionary(cleanWord(phrase))
+		if ws != nil {
+			resWord := wrapWithRubyTag(ws, phrase)
+			return phrase, resWord
+		}
+	}
+
+	return "", ""
+}
+
+func wrapWithRubyTag(ws *DictRow, phrase string) string {
+	trimmed := trimWord(phrase)
+	modded := fmt.Sprintf("<ruby>%s<rt>%s</rt></ruby>", trimmed, ws.meaning(isVietnamese))
+	return strings.Replace(phrase, trimmed, modded, 1)
+}
+
+// word has to be cleanned and lowercased
+func findWordwiseInDictionary(word string) *DictRow {
+	// first, find the word in wordwise dictionary
+	dicRow, isFound := (*wordwiseDict)[word]
+	if !isFound {
+		// not found, find its normal form
+		normalForm, isFound := (*lemmaDict)[word]
+		if !isFound {
+			return nil
+		}
+		// then, find the normal form word in wordwise dictionary
+		dicRow, isFound = (*wordwiseDict)[normalForm]
+		if !isFound {
+			return nil
+		}
+	}
+
+	// skip the word if hint level is not pass
+	if dicRow.HintLvl > hintLevel {
+		return nil
+	}
+
+	return &dicRow
+}
+
+// Trim special characters from word, then lowercase
 func cleanWord(word string) string {
-	return strings.ToLower(strings.Trim(word, ".?!,:;()[]{}<>“”‘’\"'`…*•&#~"))
+	return strings.ToLower(trimWord(word))
+}
+
+// Trim special characters from word
+func trimWord(word string) string {
+	return strings.Trim(word, ".?!,:;()[]{}<>“”‘’\"'`…*•-&#~")
 }
 
 func modifyCalibreTitle() {

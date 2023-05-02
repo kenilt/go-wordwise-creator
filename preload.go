@@ -13,6 +13,9 @@ const (
 	LemmaDictionaryPath    = "resources/lemmatization-en.csv"
 )
 
+var wordwiseDict *map[string]DictRow
+var lemmaDict *map[string]string
+
 type DictRow struct {
 	Word    string
 	Phoneme string
@@ -21,8 +24,20 @@ type DictRow struct {
 	HintLvl int
 }
 
+func (ws *DictRow) meaning(isVietnamese bool) string {
+	if isVietnamese {
+		if len(ws.Phoneme) > 0 {
+			return ws.Phoneme + " " + ws.Vi
+		} else {
+			return ws.Vi
+		}
+	} else {
+		return ws.En
+	}
+}
+
 // Load Dict from CSV
-func loadWordwiseDict() *map[string]DictRow {
+func loadWordwiseDict() {
 
 	file, err := os.Open(WordwiseDictionaryPath)
 	if err != nil {
@@ -82,11 +97,11 @@ func loadWordwiseDict() *map[string]DictRow {
 	}
 
 	log.Println("--> Csv words:", count)
-	return &dict
+	wordwiseDict = &dict
 }
 
 // Load Dict from CSV
-func loadLemmatizerDict() *map[string]string {
+func loadLemmatizerDict() {
 
 	file, err := os.Open(LemmaDictionaryPath)
 	if err != nil {
@@ -124,5 +139,5 @@ func loadLemmatizerDict() *map[string]string {
 	}
 
 	log.Println("--> Lemma pairs:", count)
-	return &dict
+	lemmaDict = &dict
 }
