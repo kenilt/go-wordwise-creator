@@ -155,9 +155,7 @@ func getWordwiseWord(originalWord string) (string, bool) {
 		return originalWord, false
 	}
 
-	trimmed := trimWord(originalWord)
-	modded := fmt.Sprintf("<ruby>%v<rt>%v</rt></ruby>", trimmed, ws.meaning(isVietnamese))
-	resWord := strings.Replace(originalWord, trimmed, modded, 1)
+	resWord := wrapWithRubyTag(ws, originalWord)
 	return resWord, true
 }
 
@@ -181,9 +179,7 @@ func getWordwisePhrase(chars []rune, word string, from int) (string, string) {
 				phrase := sb.String()
 				ws := findWordwiseInDictionary(cleanWord(phrase))
 				if ws != nil {
-					trimmed := trimWord(phrase)
-					modded := fmt.Sprintf("<ruby>%v<rt>%v</rt></ruby>", trimmed, ws.meaning(isVietnamese))
-					resWord := strings.Replace(phrase, trimmed, modded, 1)
+					resWord := wrapWithRubyTag(ws, phrase)
 					return phrase, resWord
 				}
 			}
@@ -198,14 +194,18 @@ func getWordwisePhrase(chars []rune, word string, from int) (string, string) {
 		phrase := sb.String()
 		ws := findWordwiseInDictionary(cleanWord(phrase))
 		if ws != nil {
-			trimmed := trimWord(phrase)
-			modded := fmt.Sprintf("<ruby>%v<rt>%v</rt></ruby>", trimmed, ws.meaning(isVietnamese))
-			resWord := strings.Replace(phrase, trimmed, modded, 1)
+			resWord := wrapWithRubyTag(ws, phrase)
 			return phrase, resWord
 		}
 	}
 
 	return "", ""
+}
+
+func wrapWithRubyTag(ws *DictRow, phrase string) string {
+	trimmed := trimWord(phrase)
+	modded := fmt.Sprintf("<ruby>%s<rt>%s</rt></ruby>", trimmed, ws.meaning(isVietnamese))
+	return strings.Replace(phrase, trimmed, modded, 1)
 }
 
 // word has to be cleanned and lowercased
