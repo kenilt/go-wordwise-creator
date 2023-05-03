@@ -80,4 +80,4 @@ Then zip the bin file with the resources folder
 Give permission for sh script  
 `chmod +x autobuild.sh`  
 Run the autobuild  
-`./autobuild.sh`  
+`./autobuild.sh version-tag`  
