@@ -82,7 +82,7 @@ func readInputFromConsole() {
 	checkThenChangeWorkingDir()
 
 	userInput := bufio.NewReader(os.Stdin)
-	log.Println("Enter the book's path OR drag your book here:")
+	log.Println("Enter the book's path OR drag n drop your book here:")
 	fmt.Print("                    ")
 	scanValue, _ := userInput.ReadString('\n')
 	scanValue = strings.TrimSpace(scanValue)
